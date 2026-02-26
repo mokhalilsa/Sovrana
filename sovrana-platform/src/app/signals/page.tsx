@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Signal as SignalIcon, Check, X, Filter } from 'lucide-react';
+import { Signal as SignalIcon, Check, X, Filter, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import DataTable from '@/components/DataTable';
 import { mockSignals } from '@/lib/mock-data';
@@ -32,26 +32,32 @@ export default function SignalsPage() {
     setSignals(signals.map((s) => s.id === id ? { ...s, status: 'rejected' as const, rejection_reason: 'Manually rejected' } : s));
   };
 
+  const pendingCount = signals.filter((s) => s.status === 'pending').length;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Signals</h1>
-          <p className="text-sm text-gray-500 mt-1">AI-generated trading signals from all agents</p>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">Signals</h1>
+          <p className="text-sm text-slate-500 mt-1">AI-generated trading signals from all agents</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="badge bg-yellow-900 text-yellow-300">
-            {signals.filter((s) => s.status === 'pending').length} Pending
+        {pendingCount > 0 && (
+          <span className="badge-warning flex items-center gap-1.5">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-400" />
+            </span>
+            {pendingCount} Pending
           </span>
-        </div>
+        )}
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-500" />
-          <span className="text-xs text-gray-500">Filters:</span>
+        <div className="flex items-center gap-2 text-slate-600">
+          <Filter className="w-4 h-4" />
+          <span className="text-xs font-semibold uppercase tracking-wider">Filters</span>
         </div>
         <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input-dark text-sm">
           <option value="all">All Statuses</option>
@@ -72,22 +78,29 @@ export default function SignalsPage() {
             <option key={name} value={name}>{name}</option>
           ))}
         </select>
-        <span className="text-xs text-gray-500">{filtered.length} signals</span>
+        <span className="text-xs text-slate-600 font-medium ml-auto">{filtered.length} signals</span>
       </div>
 
       {/* Signals Table */}
       <DataTable
         columns={[
           {
-            key: 'id', header: 'Signal ID',
-            render: (s) => <span className="text-xs text-gray-500 font-mono">{s.id}</span>,
+            key: 'id', header: 'Signal',
+            render: (s) => (
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${s.side === 'buy' ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
+                  {s.side === 'buy' ? <ArrowUpRight className="w-4 h-4 text-emerald-400" /> : <ArrowDownRight className="w-4 h-4 text-red-400" />}
+                </div>
+                <span className="text-[11px] text-slate-600 font-mono">{s.id}</span>
+              </div>
+            ),
           },
           {
             key: 'agent', header: 'Agent',
             render: (s) => (
               <div>
-                <p className="text-sm font-medium text-gray-200">{s.agent_name}</p>
-                <p className="text-xs text-gray-500">{s.agent_id}</p>
+                <p className="text-sm font-semibold text-slate-200">{s.agent_name}</p>
+                <p className="text-[11px] text-slate-600 font-mono">{s.agent_id}</p>
               </div>
             ),
           },
@@ -97,30 +110,30 @@ export default function SignalsPage() {
           },
           {
             key: 'market', header: 'Market',
-            render: (s) => <span className="text-sm text-gray-300">{s.condition_id}</span>,
+            render: (s) => <span className="text-sm text-slate-400 font-mono">{s.condition_id}</span>,
           },
           {
             key: 'price', header: 'Price',
-            render: (s) => <span className="font-mono text-sm">${s.price.toFixed(3)}</span>,
+            render: (s) => <span className="font-mono text-sm font-semibold text-white">${s.price.toFixed(3)}</span>,
           },
           {
-            key: 'size', header: 'Size (USDC)',
-            render: (s) => <span className="font-mono text-sm">{formatUSD(s.size_usdc)}</span>,
+            key: 'size', header: 'Size',
+            render: (s) => <span className="font-mono text-sm font-semibold text-white">{formatUSD(s.size_usdc)}</span>,
           },
           {
             key: 'confidence', header: 'Confidence',
             render: (s) => (
-              <div className="flex items-center gap-2">
-                <div className="w-16 h-1.5 bg-[#2d3748] rounded-full overflow-hidden">
+              <div className="flex items-center gap-2.5">
+                <div className="w-16 h-2 bg-slate-800 rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full ${
-                      s.confidence >= 0.8 ? 'bg-green-500' :
-                      s.confidence >= 0.6 ? 'bg-yellow-500' : 'bg-red-500'
+                    className={`h-full rounded-full transition-all ${
+                      s.confidence >= 0.8 ? 'bg-emerald-500' :
+                      s.confidence >= 0.6 ? 'bg-amber-500' : 'bg-red-500'
                     }`}
                     style={{ width: `${s.confidence * 100}%` }}
                   />
                 </div>
-                <span className="text-xs font-mono">{(s.confidence * 100).toFixed(0)}%</span>
+                <span className="text-xs font-mono font-bold text-slate-300">{(s.confidence * 100).toFixed(0)}%</span>
               </div>
             ),
           },
@@ -130,35 +143,35 @@ export default function SignalsPage() {
               <div>
                 <StatusBadge status={s.status} />
                 {s.rejection_reason && (
-                  <p className="text-[10px] text-red-400 mt-1">{s.rejection_reason}</p>
+                  <p className="text-[10px] text-red-400/80 mt-1">{s.rejection_reason}</p>
                 )}
               </div>
             ),
           },
           {
             key: 'time', header: 'Time',
-            render: (s) => <span className="text-xs text-gray-500">{format(parseISO(s.created_at), 'HH:mm:ss')}</span>,
+            render: (s) => <span className="text-xs text-slate-500 font-mono">{format(parseISO(s.created_at), 'HH:mm:ss')}</span>,
           },
           {
-            key: 'actions', header: 'Actions',
+            key: 'actions', header: '',
             render: (s) => s.status === 'pending' ? (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => approveSignal(s.id)}
-                  className="p-1.5 rounded bg-green-600/10 text-green-400 hover:bg-green-600/20 transition-colors"
+                  className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all ring-1 ring-emerald-500/20"
                   title="Approve"
                 >
                   <Check className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => rejectSignal(s.id)}
-                  className="p-1.5 rounded bg-red-600/10 text-red-400 hover:bg-red-600/20 transition-colors"
+                  className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all ring-1 ring-red-500/20"
                   title="Reject"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-            ) : <span className="text-xs text-gray-600">-</span>,
+            ) : <span className="text-xs text-slate-700">—</span>,
           },
         ]}
         data={filtered}

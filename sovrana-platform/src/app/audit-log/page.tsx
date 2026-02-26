@@ -1,17 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { ScrollText, Filter, AlertCircle, AlertTriangle, Info, XCircle } from 'lucide-react';
+import { ScrollText, Filter, AlertCircle, AlertTriangle, Info, XCircle, Shield } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import DataTable from '@/components/DataTable';
 import { mockAuditLogs } from '@/lib/mock-data';
 import { format, parseISO } from 'date-fns';
 
 const severityIcons: Record<string, React.ReactNode> = {
-  info: <Info className="w-4 h-4 text-blue-400" />,
-  warning: <AlertTriangle className="w-4 h-4 text-yellow-400" />,
-  error: <XCircle className="w-4 h-4 text-red-400" />,
-  critical: <AlertCircle className="w-4 h-4 text-red-500" />,
+  info: <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center"><Info className="w-3.5 h-3.5 text-blue-400" /></div>,
+  warning: <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center"><AlertTriangle className="w-3.5 h-3.5 text-amber-400" /></div>,
+  error: <div className="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center"><XCircle className="w-3.5 h-3.5 text-red-400" /></div>,
+  critical: <div className="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center"><AlertCircle className="w-3.5 h-3.5 text-red-500" /></div>,
 };
 
 export default function AuditLogPage() {
@@ -33,35 +33,30 @@ export default function AuditLogPage() {
   const warningCount = mockAuditLogs.filter((l) => l.severity === 'warning').length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Audit Log</h1>
-          <p className="text-sm text-gray-500 mt-1">System events, agent actions, and operational logs</p>
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-3xl font-extrabold text-white tracking-tight">Audit Log</h1>
+            <div className="p-2 rounded-xl bg-slate-800/50">
+              <Shield className="w-4 h-4 text-slate-500" />
+            </div>
+          </div>
+          <p className="text-sm text-slate-500">System events, agent actions, and operational logs</p>
         </div>
         <div className="flex items-center gap-2">
-          {errorCount > 0 && (
-            <span className="badge bg-red-900 text-red-300">
-              {errorCount} Errors
-            </span>
-          )}
-          {warningCount > 0 && (
-            <span className="badge bg-yellow-900 text-yellow-300">
-              {warningCount} Warnings
-            </span>
-          )}
-          <span className="badge bg-gray-700 text-gray-300">
-            {mockAuditLogs.length} Total
-          </span>
+          {errorCount > 0 && <span className="badge-danger">{errorCount} Errors</span>}
+          {warningCount > 0 && <span className="badge-warning">{warningCount} Warnings</span>}
+          <span className="badge-neutral">{mockAuditLogs.length} Total</span>
         </div>
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-500" />
-          <span className="text-xs text-gray-500">Filters:</span>
+        <div className="flex items-center gap-2 text-slate-600">
+          <Filter className="w-4 h-4" />
+          <span className="text-xs font-semibold uppercase tracking-wider">Filters</span>
         </div>
         <select value={filterSeverity} onChange={(e) => setFilterSeverity(e.target.value)} className="input-dark text-sm">
           <option value="all">All Severities</option>
@@ -82,7 +77,7 @@ export default function AuditLogPage() {
             <option key={type} value={type}>{type}</option>
           ))}
         </select>
-        <span className="text-xs text-gray-500">{filtered.length} events</span>
+        <span className="text-xs text-slate-600 font-medium ml-auto">{filtered.length} events</span>
       </div>
 
       {/* Log Table */}
@@ -90,16 +85,16 @@ export default function AuditLogPage() {
         columns={[
           {
             key: 'severity', header: '',
-            render: (l) => <div className="flex justify-center">{severityIcons[l.severity] || severityIcons.info}</div>,
+            render: (l) => severityIcons[l.severity] || severityIcons.info,
           },
           {
             key: 'time', header: 'Time',
-            render: (l) => <span className="text-xs text-gray-400 font-mono">{format(parseISO(l.created_at), 'MMM dd, HH:mm:ss')}</span>,
+            render: (l) => <span className="text-xs text-slate-400 font-mono">{format(parseISO(l.created_at), 'MMM dd, HH:mm:ss')}</span>,
           },
           {
             key: 'event', header: 'Event Type',
             render: (l) => (
-              <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#0f1117] text-gray-300">
+              <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900/50 text-slate-300 ring-1 ring-slate-800/40 font-semibold">
                 {l.event_type}
               </span>
             ),
@@ -107,14 +102,14 @@ export default function AuditLogPage() {
           {
             key: 'agent', header: 'Agent',
             render: (l) => l.agent_name ? (
-              <span className="text-sm text-gray-200">{l.agent_name}</span>
+              <span className="text-sm font-semibold text-slate-200">{l.agent_name}</span>
             ) : (
-              <span className="text-xs text-gray-600">System</span>
+              <span className="text-xs text-slate-600 font-medium">System</span>
             ),
           },
           {
             key: 'message', header: 'Message',
-            render: (l) => <p className="text-sm text-gray-300 max-w-md">{l.message}</p>,
+            render: (l) => <p className="text-sm text-slate-300 max-w-md leading-relaxed">{l.message}</p>,
           },
           {
             key: 'sev_badge', header: 'Severity',
@@ -124,10 +119,10 @@ export default function AuditLogPage() {
             key: 'entity', header: 'Entity',
             render: (l) => l.entity_type ? (
               <div>
-                <span className="text-xs text-gray-500">{l.entity_type}</span>
-                {l.entity_id && <p className="text-[10px] text-gray-600 font-mono">{l.entity_id}</p>}
+                <span className="text-xs text-slate-500 font-medium">{l.entity_type}</span>
+                {l.entity_id && <p className="text-[10px] text-slate-700 font-mono">{l.entity_id}</p>}
               </div>
-            ) : <span className="text-xs text-gray-600">-</span>,
+            ) : <span className="text-xs text-slate-700">—</span>,
           },
         ]}
         data={filtered}

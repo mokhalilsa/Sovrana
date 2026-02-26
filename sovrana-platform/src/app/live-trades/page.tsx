@@ -1,7 +1,8 @@
 'use client';
 
-import { ArrowUpDown, RefreshCw, Wifi, WifiOff, Loader2 } from 'lucide-react';
+import { ArrowUpDown, RefreshCw, Loader2, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { useLiveTrades } from '@/lib/hooks/usePolymarket';
+import StatusBadge from '@/components/StatusBadge';
 
 interface LiveTrade {
   id: string;
@@ -26,54 +27,45 @@ export default function LiveTradesPage() {
   const trades = (data as LiveTrade[] | null) || [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Live Trades</h1>
-          <p className="text-sm text-gray-500 mt-1">Real-time trade history from your Polymarket wallet</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs">
-            {isLive ? (
-              <>
-                <div className="relative">
-                  <div className="w-2 h-2 rounded-full bg-green-400" />
-                  <div className="absolute inset-0 w-2 h-2 rounded-full bg-green-400 animate-ping opacity-75" />
-                </div>
-                <Wifi className="w-3 h-3 text-green-400" />
-                <span className="text-green-400">Live</span>
-              </>
-            ) : (
-              <>
-                <WifiOff className="w-3 h-3 text-gray-500" />
-                <span className="text-gray-500">Offline</span>
-              </>
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-3xl font-extrabold text-white tracking-tight">Live Trades</h1>
+            {isLive && (
+              <span className="badge-success text-[10px] flex items-center gap-1.5">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
+                </span>
+                LIVE
+              </span>
             )}
           </div>
-          <button
-            onClick={refetch}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition-colors"
-          >
-            <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+          <p className="text-sm text-slate-500">Real-time trade history from your Polymarket wallet</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={refetch} className="btn-primary flex items-center gap-2 text-xs">
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
-          <span className="badge bg-gray-700 text-gray-300">{trades.length} Trades</span>
+          <span className="badge-neutral">{trades.length} Trades</span>
         </div>
       </div>
 
       {/* Error */}
       {error && (
-        <div className="card p-4 border-red-800 bg-red-900/20">
-          <p className="text-sm text-red-400">API Error: {error}</p>
+        <div className="card p-4 border-red-500/20 bg-red-500/5">
+          <p className="text-sm text-red-400 font-medium">API Error: {error}</p>
         </div>
       )}
 
       {/* Loading */}
       {isLoading && trades.length === 0 && (
-        <div className="flex items-center justify-center py-20">
+        <div className="flex items-center justify-center py-24">
           <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-          <span className="ml-3 text-gray-400">Fetching trade history...</span>
+          <span className="ml-3 text-slate-400 font-medium">Fetching trade history...</span>
         </div>
       )}
 
@@ -82,37 +74,40 @@ export default function LiveTradesPage() {
         <div className="card overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#2d3748]">
-                <th className="text-left px-4 py-3 text-[10px] text-gray-500 uppercase">Time</th>
-                <th className="text-left px-4 py-3 text-[10px] text-gray-500 uppercase">Market</th>
-                <th className="text-left px-4 py-3 text-[10px] text-gray-500 uppercase">Side</th>
-                <th className="text-left px-4 py-3 text-[10px] text-gray-500 uppercase">Outcome</th>
-                <th className="text-right px-4 py-3 text-[10px] text-gray-500 uppercase">Price</th>
-                <th className="text-right px-4 py-3 text-[10px] text-gray-500 uppercase">Size</th>
-                <th className="text-right px-4 py-3 text-[10px] text-gray-500 uppercase">Fee (bps)</th>
-                <th className="text-left px-4 py-3 text-[10px] text-gray-500 uppercase">Status</th>
+              <tr className="border-b border-slate-800/60">
+                <th className="text-left px-5 py-4 table-header">Time</th>
+                <th className="text-left px-5 py-4 table-header">Market</th>
+                <th className="text-left px-5 py-4 table-header">Side</th>
+                <th className="text-left px-5 py-4 table-header">Outcome</th>
+                <th className="text-right px-5 py-4 table-header">Price</th>
+                <th className="text-right px-5 py-4 table-header">Size</th>
+                <th className="text-right px-5 py-4 table-header">Fee (bps)</th>
+                <th className="text-left px-5 py-4 table-header">Status</th>
               </tr>
             </thead>
             <tbody>
               {trades.map((trade, idx) => (
-                <tr key={trade.id || idx} className="border-b border-[#2d3748]/50 hover:bg-[#1a1d29]">
-                  <td className="px-4 py-3 text-xs text-gray-400 font-mono">
-                    {trade.match_time ? new Date(trade.match_time).toLocaleString() : '-'}
+                <tr key={trade.id || idx} className="table-row animate-slide-up" style={{ animationDelay: `${idx * 15}ms` }}>
+                  <td className="px-5 py-4 text-xs text-slate-400 font-mono">
+                    {trade.match_time ? new Date(trade.match_time).toLocaleString() : '—'}
                   </td>
-                  <td className="px-4 py-3">
-                    <p className="text-white text-sm">{trade.title || trade.market_slug || trade.market}</p>
+                  <td className="px-5 py-4">
+                    <p className="text-white font-semibold text-sm">{trade.title || trade.market_slug || trade.market}</p>
                   </td>
-                  <td className="px-4 py-3">
-                    <span className={`badge ${trade.side === 'BUY' ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
-                      {trade.side}
-                    </span>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-6 h-6 rounded-md flex items-center justify-center ${trade.side === 'BUY' ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
+                        {trade.side === 'BUY' ? <ArrowUpRight className="w-3 h-3 text-emerald-400" /> : <ArrowDownRight className="w-3 h-3 text-red-400" />}
+                      </div>
+                      <StatusBadge status={trade.side === 'BUY' ? 'buy' : 'sell'} />
+                    </div>
                   </td>
-                  <td className="px-4 py-3 text-gray-300">{trade.outcome || '-'}</td>
-                  <td className="px-4 py-3 text-right text-white font-medium">${parseFloat(trade.price || '0').toFixed(4)}</td>
-                  <td className="px-4 py-3 text-right text-gray-300">{parseFloat(trade.size || '0').toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right text-gray-400">{trade.fee_rate_bps || '-'}</td>
-                  <td className="px-4 py-3">
-                    <span className="badge bg-blue-900/50 text-blue-300">{trade.status || 'MATCHED'}</span>
+                  <td className="px-5 py-4 text-slate-300 font-medium">{trade.outcome || '—'}</td>
+                  <td className="px-5 py-4 text-right font-mono text-white font-bold">${parseFloat(trade.price || '0').toFixed(4)}</td>
+                  <td className="px-5 py-4 text-right font-mono text-slate-300 font-semibold">{parseFloat(trade.size || '0').toFixed(2)}</td>
+                  <td className="px-5 py-4 text-right font-mono text-slate-500">{trade.fee_rate_bps || '—'}</td>
+                  <td className="px-5 py-4">
+                    <StatusBadge status={trade.status?.toLowerCase() || 'matched'} />
                   </td>
                 </tr>
               ))}
@@ -121,12 +116,12 @@ export default function LiveTradesPage() {
         </div>
       )}
 
-      {/* Empty State */}
+      {/* Empty */}
       {!isLoading && !error && trades.length === 0 && (
-        <div className="text-center py-20">
-          <ArrowUpDown className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-400">No trades found</p>
-          <p className="text-sm text-gray-600 mt-1">Your Polymarket wallet has no trade history</p>
+        <div className="text-center py-24">
+          <ArrowUpDown className="w-12 h-12 text-slate-700 mx-auto mb-4" />
+          <p className="text-slate-400 font-semibold">No trades found</p>
+          <p className="text-sm text-slate-600 mt-1">Your Polymarket wallet has no trade history</p>
         </div>
       )}
     </div>

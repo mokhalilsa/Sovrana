@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Receipt, Filter } from 'lucide-react';
+import { Receipt, Filter, ArrowUpRight, ArrowDownRight, DollarSign, Percent } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import DataTable from '@/components/DataTable';
+import StatsCard from '@/components/StatsCard';
 import { mockFills } from '@/lib/mock-data';
 import { formatUSD } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -22,32 +23,30 @@ export default function FillsPage() {
 
   const totalVolume = filtered.reduce((sum, f) => sum + f.fill_size_usdc, 0);
   const totalFees = filtered.reduce((sum, f) => sum + f.fee_usdc, 0);
+  const avgPrice = filtered.length > 0 ? filtered.reduce((sum, f) => sum + f.fill_price, 0) / filtered.length : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Fills</h1>
-          <p className="text-sm text-gray-500 mt-1">Executed trade fills across all agents</p>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">Fills</h1>
+          <p className="text-sm text-slate-500 mt-1">Executed trade fills across all agents</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="card px-4 py-2">
-            <p className="text-[10px] text-gray-500 uppercase">Total Volume</p>
-            <p className="text-sm font-semibold text-white">{formatUSD(totalVolume)}</p>
-          </div>
-          <div className="card px-4 py-2">
-            <p className="text-[10px] text-gray-500 uppercase">Total Fees</p>
-            <p className="text-sm font-semibold text-red-400">{formatUSD(totalFees)}</p>
-          </div>
-        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <StatsCard title="Total Volume" value={formatUSD(totalVolume)} icon={DollarSign} color="blue" subtitle={`${filtered.length} fills`} />
+        <StatsCard title="Total Fees" value={formatUSD(totalFees)} icon={Percent} color="red" subtitle="Across all fills" />
+        <StatsCard title="Avg Fill Price" value={`$${avgPrice.toFixed(4)}`} icon={Receipt} color="purple" subtitle="Weighted average" />
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-500" />
-          <span className="text-xs text-gray-500">Filters:</span>
+        <div className="flex items-center gap-2 text-slate-600">
+          <Filter className="w-4 h-4" />
+          <span className="text-xs font-semibold uppercase tracking-wider">Filters</span>
         </div>
         <select value={filterAgent} onChange={(e) => setFilterAgent(e.target.value)} className="input-dark text-sm">
           <option value="all">All Agents</option>
@@ -60,23 +59,29 @@ export default function FillsPage() {
           <option value="buy">Buy</option>
           <option value="sell">Sell</option>
         </select>
-        <span className="text-xs text-gray-500">{filtered.length} fills</span>
+        <span className="text-xs text-slate-600 font-medium ml-auto">{filtered.length} fills</span>
       </div>
 
       {/* Fills Table */}
       <DataTable
         columns={[
           {
-            key: 'id', header: 'Fill ID',
-            render: (f) => <span className="text-xs text-gray-500 font-mono">{f.id}</span>,
-          },
-          {
-            key: 'order', header: 'Order ID',
-            render: (f) => <span className="text-xs text-gray-500 font-mono">{f.order_id}</span>,
+            key: 'id', header: 'Fill',
+            render: (f) => (
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${f.side === 'buy' ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
+                  {f.side === 'buy' ? <ArrowUpRight className="w-4 h-4 text-emerald-400" /> : <ArrowDownRight className="w-4 h-4 text-red-400" />}
+                </div>
+                <div>
+                  <span className="text-[11px] text-slate-500 font-mono">{f.id}</span>
+                  <p className="text-[10px] text-slate-700 font-mono">{f.order_id}</p>
+                </div>
+              </div>
+            ),
           },
           {
             key: 'agent', header: 'Agent',
-            render: (f) => <p className="text-sm font-medium text-gray-200">{f.agent_name}</p>,
+            render: (f) => <p className="text-sm font-semibold text-slate-200">{f.agent_name}</p>,
           },
           {
             key: 'side', header: 'Side',
@@ -84,24 +89,24 @@ export default function FillsPage() {
           },
           {
             key: 'market', header: 'Market',
-            render: (f) => <span className="text-sm text-gray-300">{f.condition_id}</span>,
+            render: (f) => <span className="text-sm text-slate-400 font-mono">{f.condition_id}</span>,
           },
           {
             key: 'price', header: 'Fill Price',
-            render: (f) => <span className="font-mono text-sm">${f.fill_price.toFixed(4)}</span>,
+            render: (f) => <span className="font-mono text-sm font-semibold text-white">${f.fill_price.toFixed(4)}</span>,
           },
           {
             key: 'size', header: 'Fill Size',
-            render: (f) => <span className="font-mono text-sm">{formatUSD(f.fill_size_usdc)}</span>,
+            render: (f) => <span className="font-mono text-sm font-semibold text-white">{formatUSD(f.fill_size_usdc)}</span>,
           },
           {
             key: 'fee', header: 'Fee',
-            render: (f) => <span className="font-mono text-sm text-red-400">{formatUSD(f.fee_usdc)}</span>,
+            render: (f) => <span className="font-mono text-sm text-red-400 font-semibold">{formatUSD(f.fee_usdc)}</span>,
           },
           {
             key: 'time', header: 'Filled At',
             render: (f) => (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-slate-500 font-mono">
                 {format(parseISO(f.filled_at), 'MMM dd, HH:mm:ss')}
               </span>
             ),

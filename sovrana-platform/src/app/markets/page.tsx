@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Globe, Filter, Search, ExternalLink, TrendingUp } from 'lucide-react';
+import { Globe, Search, TrendingUp, BarChart3 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import { mockMarkets } from '@/lib/mock-data';
 import { formatCompact } from '@/lib/utils';
@@ -22,33 +22,29 @@ export default function MarketsPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Markets</h1>
-          <p className="text-sm text-gray-500 mt-1">Polymarket prediction markets being tracked</p>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">Markets</h1>
+          <p className="text-sm text-slate-500 mt-1">Polymarket prediction markets being tracked</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="badge bg-green-900 text-green-300">
-            {mockMarkets.filter((m) => m.active).length} Active
-          </span>
-          <span className="badge bg-gray-700 text-gray-300">
-            {mockMarkets.length} Total
-          </span>
+          <span className="badge-success">{mockMarkets.filter((m) => m.active).length} Active</span>
+          <span className="badge-neutral">{mockMarkets.length} Total</span>
         </div>
       </div>
 
       {/* Search & Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
           <input
             type="text"
             placeholder="Search markets..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="input-dark w-full pl-10 pr-4 py-2 text-sm"
+            className="input-dark w-full pl-11"
           />
         </div>
         <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="input-dark text-sm">
@@ -62,44 +58,42 @@ export default function MarketsPage() {
           <option value="active">Active Only</option>
           <option value="inactive">Inactive Only</option>
         </select>
-        <span className="text-xs text-gray-500">{filtered.length} markets</span>
+        <span className="text-xs text-slate-600 font-medium ml-auto">{filtered.length} markets</span>
       </div>
 
       {/* Markets Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {filtered.map((market) => (
-          <div key={market.condition_id} className="card p-5 hover:border-blue-600/30 transition-colors">
+          <div key={market.condition_id} className="card-hover p-6 group">
             {/* Market Header */}
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1 mr-3">
                 {market.category && (
-                  <span className="badge bg-blue-900/50 text-blue-300 mb-2 inline-block">{market.category}</span>
+                  <span className="badge-purple text-[9px] mb-2.5 inline-block">{market.category}</span>
                 )}
-                <h3 className="text-sm font-semibold text-white leading-snug">{market.question}</h3>
+                <h3 className="text-sm font-bold text-white leading-relaxed group-hover:text-blue-400 transition-colors">{market.question}</h3>
               </div>
-              <span className={`badge ml-2 ${market.active ? 'bg-green-900 text-green-300' : 'bg-gray-700 text-gray-300'}`}>
-                {market.active ? 'Active' : 'Inactive'}
-              </span>
+              <StatusBadge status={market.active ? 'active' : 'closed'} dot={market.active} />
             </div>
 
             {/* Prices */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-[#0f1117] rounded-lg px-4 py-3 text-center">
-                <p className="text-[10px] text-gray-500 uppercase mb-1">Yes</p>
-                <p className="text-xl font-bold text-green-400">{(market.yes_price * 100).toFixed(0)}¢</p>
-                <div className="w-full h-1.5 bg-[#2d3748] rounded-full mt-2 overflow-hidden">
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              <div className="bg-slate-900/50 rounded-xl px-4 py-3.5 text-center ring-1 ring-slate-800/40">
+                <p className="text-[10px] text-slate-600 font-bold uppercase tracking-wider mb-1.5">Yes</p>
+                <p className="text-2xl font-extrabold text-emerald-400">{(market.yes_price * 100).toFixed(0)}<span className="text-sm font-bold text-emerald-500/60">¢</span></p>
+                <div className="w-full h-1.5 bg-slate-800 rounded-full mt-2.5 overflow-hidden">
                   <div
-                    className="h-full bg-green-500 rounded-full"
+                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500"
                     style={{ width: `${market.yes_price * 100}%` }}
                   />
                 </div>
               </div>
-              <div className="bg-[#0f1117] rounded-lg px-4 py-3 text-center">
-                <p className="text-[10px] text-gray-500 uppercase mb-1">No</p>
-                <p className="text-xl font-bold text-red-400">{(market.no_price * 100).toFixed(0)}¢</p>
-                <div className="w-full h-1.5 bg-[#2d3748] rounded-full mt-2 overflow-hidden">
+              <div className="bg-slate-900/50 rounded-xl px-4 py-3.5 text-center ring-1 ring-slate-800/40">
+                <p className="text-[10px] text-slate-600 font-bold uppercase tracking-wider mb-1.5">No</p>
+                <p className="text-2xl font-extrabold text-red-400">{(market.no_price * 100).toFixed(0)}<span className="text-sm font-bold text-red-500/60">¢</span></p>
+                <div className="w-full h-1.5 bg-slate-800 rounded-full mt-2.5 overflow-hidden">
                   <div
-                    className="h-full bg-red-500 rounded-full"
+                    className="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-full transition-all duration-500"
                     style={{ width: `${market.no_price * 100}%` }}
                   />
                 </div>
@@ -107,17 +101,17 @@ export default function MarketsPage() {
             </div>
 
             {/* Volume */}
-            <div className="flex items-center justify-between pt-3 border-t border-[#2d3748]">
+            <div className="flex items-center justify-between pt-4 border-t border-slate-800/40">
               <div className="flex items-center gap-2">
-                <TrendingUp className="w-3.5 h-3.5 text-gray-500" />
-                <span className="text-xs text-gray-400">24h Volume</span>
+                <BarChart3 className="w-3.5 h-3.5 text-slate-600" />
+                <span className="text-xs text-slate-500 font-medium">24h Volume</span>
               </div>
-              <span className="text-sm font-semibold text-white">{formatCompact(market.volume_24h)}</span>
+              <span className="text-sm font-bold text-white">{formatCompact(market.volume_24h)}</span>
             </div>
 
             {/* Market ID */}
-            <div className="mt-2">
-              <p className="text-[10px] text-gray-600 font-mono truncate">{market.condition_id}</p>
+            <div className="mt-3">
+              <p className="text-[10px] text-slate-700 font-mono truncate">{market.condition_id}</p>
             </div>
           </div>
         ))}

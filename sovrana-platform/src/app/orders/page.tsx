@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ShoppingCart, Filter, XCircle } from 'lucide-react';
+import { ShoppingCart, Filter, XCircle, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import DataTable from '@/components/DataTable';
 import { mockOrders } from '@/lib/mock-data';
@@ -28,29 +28,28 @@ export default function OrdersPage() {
     setOrders(orders.map((o) => o.id === id ? { ...o, status: 'cancelled' as const } : o));
   };
 
+  const activeCount = orders.filter((o) => o.status === 'placed' || o.status === 'pending').length;
+  const filledCount = orders.filter((o) => o.status === 'filled').length;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Orders</h1>
-          <p className="text-sm text-gray-500 mt-1">All trading orders placed by agents on Polymarket</p>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">Orders</h1>
+          <p className="text-sm text-slate-500 mt-1">All trading orders placed by agents on Polymarket</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="badge bg-blue-900 text-blue-300">
-            {orders.filter((o) => o.status === 'placed' || o.status === 'pending').length} Active
-          </span>
-          <span className="badge bg-green-900 text-green-300">
-            {orders.filter((o) => o.status === 'filled').length} Filled
-          </span>
+          <span className="badge-info">{activeCount} Active</span>
+          <span className="badge-success">{filledCount} Filled</span>
         </div>
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-500" />
-          <span className="text-xs text-gray-500">Filters:</span>
+        <div className="flex items-center gap-2 text-slate-600">
+          <Filter className="w-4 h-4" />
+          <span className="text-xs font-semibold uppercase tracking-wider">Filters</span>
         </div>
         <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input-dark text-sm">
           <option value="all">All Statuses</option>
@@ -73,30 +72,31 @@ export default function OrdersPage() {
             <option key={name} value={name}>{name}</option>
           ))}
         </select>
-        <span className="text-xs text-gray-500">{filtered.length} orders</span>
+        <span className="text-xs text-slate-600 font-medium ml-auto">{filtered.length} orders</span>
       </div>
 
       {/* Orders Table */}
       <DataTable
         columns={[
           {
-            key: 'id', header: 'Order ID',
+            key: 'id', header: 'Order',
             render: (o) => (
-              <div>
-                <span className="text-xs text-gray-500 font-mono">{o.id}</span>
-                {o.polymarket_order_id && (
-                  <p className="text-[10px] text-gray-600 font-mono">{o.polymarket_order_id}</p>
-                )}
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${o.side === 'buy' ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
+                  {o.side === 'buy' ? <ArrowUpRight className="w-4 h-4 text-emerald-400" /> : <ArrowDownRight className="w-4 h-4 text-red-400" />}
+                </div>
+                <div>
+                  <span className="text-[11px] text-slate-500 font-mono">{o.id}</span>
+                  {o.polymarket_order_id && (
+                    <p className="text-[10px] text-slate-700 font-mono">{o.polymarket_order_id}</p>
+                  )}
+                </div>
               </div>
             ),
           },
           {
             key: 'agent', header: 'Agent',
-            render: (o) => (
-              <div>
-                <p className="text-sm font-medium text-gray-200">{o.agent_name}</p>
-              </div>
-            ),
+            render: (o) => <p className="text-sm font-semibold text-slate-200">{o.agent_name}</p>,
           },
           {
             key: 'side', header: 'Side',
@@ -104,19 +104,19 @@ export default function OrdersPage() {
           },
           {
             key: 'type', header: 'Type',
-            render: (o) => <span className="text-sm text-gray-300 capitalize">{o.order_type}</span>,
+            render: (o) => <span className="text-sm text-slate-400 capitalize font-medium">{o.order_type}</span>,
           },
           {
             key: 'market', header: 'Market',
-            render: (o) => <span className="text-sm text-gray-300">{o.condition_id}</span>,
+            render: (o) => <span className="text-sm text-slate-400 font-mono">{o.condition_id}</span>,
           },
           {
             key: 'price', header: 'Price',
-            render: (o) => <span className="font-mono text-sm">{o.price ? `$${o.price.toFixed(3)}` : 'Market'}</span>,
+            render: (o) => <span className="font-mono text-sm font-semibold text-white">{o.price ? `$${o.price.toFixed(3)}` : 'Market'}</span>,
           },
           {
-            key: 'size', header: 'Size (USDC)',
-            render: (o) => <span className="font-mono text-sm">{formatUSD(o.size_usdc)}</span>,
+            key: 'size', header: 'Size',
+            render: (o) => <span className="font-mono text-sm font-semibold text-white">{formatUSD(o.size_usdc)}</span>,
           },
           {
             key: 'status', header: 'Status',
@@ -124,16 +124,16 @@ export default function OrdersPage() {
               <div>
                 <StatusBadge status={o.status} />
                 {o.block_reason && (
-                  <p className="text-[10px] text-red-400 mt-1">{o.block_reason}</p>
+                  <p className="text-[10px] text-red-400/80 mt-1">{o.block_reason}</p>
                 )}
               </div>
             ),
           },
           {
-            key: 'placed', header: 'Placed At',
+            key: 'placed', header: 'Placed',
             render: (o) => (
-              <span className="text-xs text-gray-500">
-                {o.placed_at ? format(parseISO(o.placed_at), 'HH:mm:ss') : '-'}
+              <span className="text-xs text-slate-500 font-mono">
+                {o.placed_at ? format(parseISO(o.placed_at), 'HH:mm:ss') : '—'}
               </span>
             ),
           },
@@ -142,7 +142,7 @@ export default function OrdersPage() {
             render: (o) => (o.status === 'placed' || o.status === 'pending' || o.status === 'partial') ? (
               <button
                 onClick={() => cancelOrder(o.id)}
-                className="p-1.5 rounded bg-red-600/10 text-red-400 hover:bg-red-600/20 transition-colors"
+                className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all ring-1 ring-red-500/20"
                 title="Cancel Order"
               >
                 <XCircle className="w-3.5 h-3.5" />

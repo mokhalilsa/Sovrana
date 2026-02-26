@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { TrendingUp, Filter } from 'lucide-react';
+import { TrendingUp, Filter, DollarSign, Activity, BarChart3 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, BarChart, Bar, LineChart, Line,
+  ResponsiveContainer, BarChart, Bar,
 } from 'recharts';
-import StatusBadge from '@/components/StatusBadge';
+import StatsCard from '@/components/StatsCard';
 import DataTable from '@/components/DataTable';
 import { mockPnlSnapshots } from '@/lib/mock-data';
 import { formatUSD, getPnlColor } from '@/lib/utils';
@@ -15,12 +15,15 @@ import { format, parseISO } from 'date-fns';
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-[#1a1f2e] border border-[#2d3748] rounded-lg p-3 shadow-xl">
-        <p className="text-xs text-gray-400 mb-1">{label}</p>
+      <div className="bg-[#111827] border border-slate-700/60 rounded-xl p-3.5 shadow-2xl backdrop-blur-xl">
+        <p className="text-[11px] text-slate-500 font-medium mb-2">{label}</p>
         {payload.map((entry: any, idx: number) => (
-          <p key={idx} className="text-sm font-medium" style={{ color: entry.color }}>
-            {entry.name}: {formatUSD(entry.value)}
-          </p>
+          <div key={idx} className="flex items-center gap-2 mb-0.5">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+            <p className="text-sm font-semibold text-slate-200">
+              {entry.name}: {formatUSD(entry.value)}
+            </p>
+          </div>
         ))}
       </div>
     );
@@ -37,7 +40,6 @@ export default function PnlPage() {
     return true;
   });
 
-  // Aggregate by date for chart
   const dateMap = new Map<string, { realized: number; unrealized: number; total: number; volume: number; trades: number }>();
   filtered.forEach((s) => {
     const existing = dateMap.get(s.snapshot_date) || { realized: 0, unrealized: 0, total: 0, volume: 0, trades: 0 };
@@ -57,7 +59,6 @@ export default function PnlPage() {
       ...data,
     }));
 
-  // Cumulative PnL
   let cumulative = 0;
   const cumulativeData = chartData.map((d) => {
     cumulative += d.total;
@@ -70,38 +71,27 @@ export default function PnlPage() {
   const totalTrades = filtered.reduce((sum, s) => sum + s.trade_count, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Profit & Loss</h1>
-          <p className="text-sm text-gray-500 mt-1">Performance analytics and PnL tracking</p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-extrabold text-white tracking-tight">Profit & Loss</h1>
+        <p className="text-sm text-slate-500 mt-1">Performance analytics and PnL tracking</p>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="card p-4">
-          <p className="text-[10px] text-gray-500 uppercase">Total PnL</p>
-          <p className={`text-2xl font-bold ${getPnlColor(totalPnl)}`}>{formatUSD(totalPnl)}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-[10px] text-gray-500 uppercase">Realized PnL</p>
-          <p className={`text-2xl font-bold ${getPnlColor(totalRealized)}`}>{formatUSD(totalRealized)}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-[10px] text-gray-500 uppercase">Total Volume</p>
-          <p className="text-2xl font-bold text-white">{formatUSD(totalVolume)}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-[10px] text-gray-500 uppercase">Total Trades</p>
-          <p className="text-2xl font-bold text-white">{totalTrades}</p>
-        </div>
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <StatsCard title="Total PnL" value={`${totalPnl >= 0 ? '+' : ''}${formatUSD(totalPnl)}`} icon={TrendingUp} color={totalPnl >= 0 ? 'green' : 'red'} trend={{ value: 8.5, label: 'vs last week' }} />
+        <StatsCard title="Realized PnL" value={`${totalRealized >= 0 ? '+' : ''}${formatUSD(totalRealized)}`} icon={DollarSign} color="blue" />
+        <StatsCard title="Total Volume" value={formatUSD(totalVolume)} icon={BarChart3} color="purple" />
+        <StatsCard title="Total Trades" value={totalTrades.toString()} icon={Activity} color="cyan" />
       </div>
 
-      {/* Filters */}
+      {/* Filter */}
       <div className="flex items-center gap-3">
-        <Filter className="w-4 h-4 text-gray-500" />
+        <div className="flex items-center gap-2 text-slate-600">
+          <Filter className="w-4 h-4" />
+          <span className="text-xs font-semibold uppercase tracking-wider">Agent</span>
+        </div>
         <select value={filterAgent} onChange={(e) => setFilterAgent(e.target.value)} className="input-dark text-sm">
           <option value="all">All Agents</option>
           {agentNames.map((name) => (
@@ -113,67 +103,108 @@ export default function PnlPage() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Daily PnL */}
-        <div className="card p-5">
-          <h3 className="text-sm font-semibold text-white mb-4">Daily PnL Breakdown</h3>
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-sm font-bold text-white">Daily PnL Breakdown</h3>
+              <p className="text-xs text-slate-600 mt-1">Realized vs Unrealized</p>
+            </div>
+            <div className="flex items-center gap-4 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-1 rounded-full bg-blue-500" />
+                <span className="text-slate-500 font-medium">Realized</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-1 rounded-full bg-emerald-500" />
+                <span className="text-slate-500 font-medium">Unrealized</span>
+              </div>
+            </div>
+          </div>
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2d3748" />
-              <XAxis dataKey="date" tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={{ stroke: '#2d3748' }} />
-              <YAxis tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={{ stroke: '#2d3748' }} tickFormatter={(v) => `$${v}`} />
+            <BarChart data={chartData} barSize={20}>
+              <defs>
+                <linearGradient id="barRealized" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.9} />
+                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.3} />
+                </linearGradient>
+                <linearGradient id="barUnrealized" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.9} />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity={0.3} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(30,41,59,0.5)" vertical={false} />
+              <XAxis dataKey="date" tick={{ fill: '#475569', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#475569', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="realized" fill="#3b82f6" radius={[2, 2, 0, 0]} name="Realized" />
-              <Bar dataKey="unrealized" fill="#22c55e" radius={[2, 2, 0, 0]} name="Unrealized" />
+              <Bar dataKey="realized" fill="url(#barRealized)" radius={[6, 6, 0, 0]} name="Realized" />
+              <Bar dataKey="unrealized" fill="url(#barUnrealized)" radius={[6, 6, 0, 0]} name="Unrealized" />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         {/* Cumulative PnL */}
-        <div className="card p-5">
-          <h3 className="text-sm font-semibold text-white mb-4">Cumulative PnL</h3>
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-sm font-bold text-white">Cumulative PnL</h3>
+              <p className="text-xs text-slate-600 mt-1">Running total over time</p>
+            </div>
+          </div>
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={cumulativeData}>
               <defs>
                 <linearGradient id="colorCumulative" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.25} />
+                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2d3748" />
-              <XAxis dataKey="date" tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={{ stroke: '#2d3748' }} />
-              <YAxis tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={{ stroke: '#2d3748' }} tickFormatter={(v) => `$${v}`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(30,41,59,0.5)" vertical={false} />
+              <XAxis dataKey="date" tick={{ fill: '#475569', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#475569', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
               <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="cumulative" stroke="#8b5cf6" fill="url(#colorCumulative)" strokeWidth={2} name="Cumulative PnL" />
+              <Area type="monotone" dataKey="cumulative" stroke="#8b5cf6" fill="url(#colorCumulative)" strokeWidth={2.5} name="Cumulative PnL" dot={false} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* Volume Chart */}
-      <div className="card p-5">
-        <h3 className="text-sm font-semibold text-white mb-4">Daily Volume & Trade Count</h3>
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-sm font-bold text-white">Daily Volume</h3>
+            <p className="text-xs text-slate-600 mt-1">Trading volume over time</p>
+          </div>
+        </div>
         <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#2d3748" />
-            <XAxis dataKey="date" tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={{ stroke: '#2d3748' }} />
-            <YAxis tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={{ stroke: '#2d3748' }} tickFormatter={(v) => `$${v}`} />
+          <BarChart data={chartData} barSize={32}>
+            <defs>
+              <linearGradient id="barVolume" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.9} />
+                <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.2} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(30,41,59,0.5)" vertical={false} />
+            <XAxis dataKey="date" tick={{ fill: '#475569', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#475569', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
             <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="volume" fill="#06b6d4" radius={[4, 4, 0, 0]} name="Volume" />
+            <Bar dataKey="volume" fill="url(#barVolume)" radius={[8, 8, 0, 0]} name="Volume" />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
       {/* Snapshots Table */}
       <div>
-        <h3 className="text-sm font-semibold text-white mb-4">PnL Snapshots</h3>
+        <h3 className="text-sm font-bold text-white mb-4">PnL Snapshots</h3>
         <DataTable
           columns={[
-            { key: 'date', header: 'Date', render: (s) => <span className="text-sm">{format(parseISO(s.snapshot_date), 'MMM dd, yyyy')}</span> },
-            { key: 'agent', header: 'Agent', render: (s) => <span className="text-sm font-medium text-gray-200">{s.agent_name}</span> },
-            { key: 'realized', header: 'Realized', render: (s) => <span className={`font-mono text-sm ${getPnlColor(s.realized_pnl)}`}>{formatUSD(s.realized_pnl)}</span> },
-            { key: 'unrealized', header: 'Unrealized', render: (s) => <span className={`font-mono text-sm ${getPnlColor(s.unrealized_pnl)}`}>{formatUSD(s.unrealized_pnl)}</span> },
-            { key: 'total', header: 'Total PnL', render: (s) => <span className={`font-mono text-sm font-medium ${getPnlColor(s.total_pnl)}`}>{formatUSD(s.total_pnl)}</span> },
-            { key: 'volume', header: 'Volume', render: (s) => <span className="font-mono text-sm">{formatUSD(s.total_volume)}</span> },
-            { key: 'trades', header: 'Trades', render: (s) => <span className="text-sm">{s.trade_count}</span> },
+            { key: 'date', header: 'Date', render: (s) => <span className="text-sm font-mono text-slate-300">{format(parseISO(s.snapshot_date), 'MMM dd, yyyy')}</span> },
+            { key: 'agent', header: 'Agent', render: (s) => <span className="text-sm font-semibold text-slate-200">{s.agent_name}</span> },
+            { key: 'realized', header: 'Realized', render: (s) => <span className={`font-mono text-sm font-bold ${getPnlColor(s.realized_pnl)}`}>{formatUSD(s.realized_pnl)}</span> },
+            { key: 'unrealized', header: 'Unrealized', render: (s) => <span className={`font-mono text-sm font-bold ${getPnlColor(s.unrealized_pnl)}`}>{formatUSD(s.unrealized_pnl)}</span> },
+            { key: 'total', header: 'Total PnL', render: (s) => <span className={`font-mono text-sm font-extrabold ${getPnlColor(s.total_pnl)}`}>{formatUSD(s.total_pnl)}</span> },
+            { key: 'volume', header: 'Volume', render: (s) => <span className="font-mono text-sm text-slate-300">{formatUSD(s.total_volume)}</span> },
+            { key: 'trades', header: 'Trades', render: (s) => <span className="text-sm font-semibold text-slate-300">{s.trade_count}</span> },
           ]}
           data={filtered}
           pageSize={10}
