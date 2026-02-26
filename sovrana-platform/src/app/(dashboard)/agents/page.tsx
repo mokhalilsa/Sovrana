@@ -47,7 +47,7 @@ export default function AgentsPage() {
       {/* Header */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">AI Agents</h1>
+          <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">AI Agents</h1>
           <p className="text-sm text-slate-500 mt-1">Manage and monitor autonomous trading agents</p>
         </div>
         <button className="btn-primary flex items-center gap-2">
@@ -59,7 +59,7 @@ export default function AgentsPage() {
       {/* Filters */}
       <div className="flex items-center gap-4 flex-wrap">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input
             type="text"
             placeholder="Search agents..."
@@ -68,15 +68,15 @@ export default function AgentsPage() {
             className="input-dark w-full pl-11"
           />
         </div>
-        <div className="flex items-center gap-1.5 bg-slate-900/50 rounded-xl p-1 border border-slate-800/60">
+        <div className="flex items-center gap-1.5 bg-slate-50 rounded-xl p-1 border border-slate-200">
           {Object.entries(statusCounts).map(([key, count]) => (
             <button
               key={key}
               onClick={() => setFilter(key)}
               className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ${
                 filter === key
-                  ? 'bg-blue-600/20 text-blue-400 ring-1 ring-blue-500/30'
-                  : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
+                  ? 'bg-blue-600/20 text-blue-600 ring-1 ring-blue-500/30'
+                  : 'text-slate-500 hover:text-slate-500 hover:bg-slate-50'
               }`}
             >
               {key === 'all' ? 'All' : key.charAt(0).toUpperCase() + key.slice(1)} ({count})
@@ -97,18 +97,18 @@ export default function AgentsPage() {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                    agent.status === 'running' ? 'bg-emerald-500/10 text-emerald-400' :
-                    agent.status === 'errored' ? 'bg-red-500/10 text-red-400' :
-                    agent.status === 'idle' ? 'bg-blue-500/10 text-blue-400' :
-                    'bg-amber-500/10 text-amber-400'
+                    agent.status === 'running' ? 'bg-emerald-50 text-emerald-600' :
+                    agent.status === 'errored' ? 'bg-red-50 text-red-600' :
+                    agent.status === 'idle' ? 'bg-blue-50 text-blue-600' :
+                    'bg-amber-50 text-amber-600'
                   }`}>
                     <StatusIcon className="w-5 h-5" />
                   </div>
                   <div>
-                    <Link href={`/agents/${agent.id}`} className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">
+                    <Link href={`/agents/${agent.id}`} className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
                       {agent.name}
                     </Link>
-                    <p className="text-[11px] text-slate-600 font-mono">{agent.id}</p>
+                    <p className="text-[11px] text-slate-500 font-mono">{agent.id}</p>
                   </div>
                 </div>
                 <StatusBadge status={agent.status} dot />
@@ -119,32 +119,32 @@ export default function AgentsPage() {
 
               {/* Stats Grid */}
               <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-slate-900/40 rounded-lg px-3 py-2.5">
-                  <p className="text-[10px] text-slate-600 font-medium uppercase tracking-wider">Mode</p>
-                  <p className="text-xs font-bold text-slate-300 mt-0.5">{agent.mode === 'trading_enabled' ? 'Trading' : 'Read Only'}</p>
+                <div className="bg-slate-50/40 rounded-lg px-3 py-2.5">
+                  <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Mode</p>
+                  <p className="text-xs font-bold text-slate-500 mt-0.5">{agent.mode === 'trading_enabled' ? 'Trading' : 'Read Only'}</p>
                 </div>
-                <div className="bg-slate-900/40 rounded-lg px-3 py-2.5">
-                  <p className="text-[10px] text-slate-600 font-medium uppercase tracking-wider">Max Order</p>
-                  <p className="text-xs font-bold text-slate-300 mt-0.5">{risk ? formatUSD(risk.max_order_size_usdc) : '—'}</p>
+                <div className="bg-slate-50/40 rounded-lg px-3 py-2.5">
+                  <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Max Order</p>
+                  <p className="text-xs font-bold text-slate-500 mt-0.5">{risk ? formatUSD(risk.max_order_size_usdc) : '—'}</p>
                 </div>
-                <div className="bg-slate-900/40 rounded-lg px-3 py-2.5">
-                  <p className="text-[10px] text-slate-600 font-medium uppercase tracking-wider">Exposure</p>
-                  <p className="text-xs font-bold text-slate-300 mt-0.5">{risk ? formatUSD(risk.max_exposure_usdc) : '—'}</p>
+                <div className="bg-slate-50/40 rounded-lg px-3 py-2.5">
+                  <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Exposure</p>
+                  <p className="text-xs font-bold text-slate-500 mt-0.5">{risk ? formatUSD(risk.max_exposure_usdc) : '—'}</p>
                 </div>
-                <div className="bg-slate-900/40 rounded-lg px-3 py-2.5">
-                  <p className="text-[10px] text-slate-600 font-medium uppercase tracking-wider">Loss Cap</p>
-                  <p className="text-xs font-bold text-slate-300 mt-0.5">{risk ? formatUSD(risk.daily_loss_cap_usdc) : '—'}</p>
+                <div className="bg-slate-50/40 rounded-lg px-3 py-2.5">
+                  <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Loss Cap</p>
+                  <p className="text-xs font-bold text-slate-500 mt-0.5">{risk ? formatUSD(risk.daily_loss_cap_usdc) : '—'}</p>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-2 pt-4 border-t border-slate-800/40">
+              <div className="flex items-center gap-2 pt-4 border-t border-slate-100">
                 <button
                   onClick={() => toggleEnabled(agent.id)}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     agent.is_enabled
-                      ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 ring-1 ring-emerald-500/20'
-                      : 'bg-slate-800/50 text-slate-500 hover:bg-slate-800/80 ring-1 ring-slate-700/30'
+                      ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-500/20 ring-1 ring-emerald-200'
+                      : 'bg-slate-100 text-slate-500 hover:bg-slate-100 ring-1 ring-slate-700/30'
                   }`}
                 >
                   {agent.is_enabled ? <Power className="w-3.5 h-3.5" /> : <PowerOff className="w-3.5 h-3.5" />}
@@ -154,8 +154,8 @@ export default function AgentsPage() {
                   onClick={() => toggleKillSwitch(agent.id)}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     agent.kill_switch
-                      ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 ring-1 ring-red-500/20'
-                      : 'bg-slate-800/50 text-slate-500 hover:bg-slate-800/80 ring-1 ring-slate-700/30'
+                      ? 'bg-red-50 text-red-600 hover:bg-red-500/20 ring-1 ring-red-200'
+                      : 'bg-slate-100 text-slate-500 hover:bg-slate-100 ring-1 ring-slate-700/30'
                   }`}
                 >
                   <AlertTriangle className="w-3.5 h-3.5" />
@@ -163,7 +163,7 @@ export default function AgentsPage() {
                 </button>
                 <Link
                   href={`/agents/${agent.id}`}
-                  className="p-2.5 rounded-xl text-slate-500 hover:text-white hover:bg-slate-800/50 transition-all ring-1 ring-slate-700/30"
+                  className="p-2.5 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-all ring-1 ring-slate-700/30"
                 >
                   <Eye className="w-4 h-4" />
                 </Link>

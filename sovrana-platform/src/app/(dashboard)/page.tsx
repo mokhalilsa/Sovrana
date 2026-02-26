@@ -41,12 +41,12 @@ const agentStatusData = [
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-[#111827] border border-slate-700/60 rounded-xl p-3.5 shadow-2xl backdrop-blur-xl">
+      <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-lg">
         <p className="text-[11px] text-slate-500 font-medium mb-2">{label}</p>
         {payload.map((entry: any, idx: number) => (
           <div key={idx} className="flex items-center gap-2 mb-0.5">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-            <p className="text-sm font-semibold text-slate-200">
+            <p className="text-sm font-semibold text-slate-700">
               {entry.name}: {typeof entry.value === 'number' ? formatUSD(entry.value) : entry.value}
             </p>
           </div>
@@ -66,7 +66,7 @@ export default function DashboardPage() {
       <div className="flex items-end justify-between">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">Operations Dashboard</h1>
+            <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Operations Dashboard</h1>
             <span className="badge-success text-[10px]">
               <span className="relative flex h-1.5 w-1.5 mr-1">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -77,7 +77,7 @@ export default function DashboardPage() {
           </div>
           <p className="text-sm text-slate-500">Real-time overview of all trading agent operations</p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-600">
+        <div className="flex items-center gap-2 text-xs text-slate-500">
           <Clock className="w-3.5 h-3.5" />
           <span className="font-mono">{format(new Date(), 'MMM dd, yyyy HH:mm')}</span>
         </div>
@@ -128,8 +128,8 @@ export default function DashboardPage() {
         <div className="card p-6 lg:col-span-2">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-sm font-bold text-white">PnL Performance</h3>
-              <p className="text-xs text-slate-600 mt-1">Alpha Sentinel — Last 7 days</p>
+              <h3 className="text-sm font-bold text-slate-800">PnL Performance</h3>
+              <p className="text-xs text-slate-500 mt-1">Alpha Sentinel — Last 7 days</p>
             </div>
             <div className="flex items-center gap-5 text-xs">
               <div className="flex items-center gap-2">
@@ -146,17 +146,17 @@ export default function DashboardPage() {
             <AreaChart data={pnlChartData}>
               <defs>
                 <linearGradient id="colorRealized" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.25} />
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.12} />
                   <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.25} />
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.12} />
                   <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(30,41,59,0.5)" vertical={false} />
-              <XAxis dataKey="date" tick={{ fill: '#475569', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#475569', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(226,232,240,0.8)" vertical={false} />
+              <XAxis dataKey="date" tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
               <Tooltip content={<CustomTooltip />} />
               <Area type="monotone" dataKey="realized" stroke="#3b82f6" fill="url(#colorRealized)" strokeWidth={2.5} name="Realized" dot={false} />
               <Area type="monotone" dataKey="total" stroke="#10b981" fill="url(#colorTotal)" strokeWidth={2.5} name="Total" dot={false} />
@@ -166,7 +166,7 @@ export default function DashboardPage() {
 
         {/* Agent Status Pie */}
         <div className="card p-6">
-          <h3 className="text-sm font-bold text-white mb-6">Agent Status</h3>
+          <h3 className="text-sm font-bold text-slate-800 mb-6">Agent Status</h3>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie
@@ -187,8 +187,8 @@ export default function DashboardPage() {
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="bg-[#111827] border border-slate-700/60 rounded-xl p-2.5 shadow-2xl">
-                        <p className="text-sm font-semibold text-slate-200">{payload[0].name}: {payload[0].value}</p>
+                      <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xl">
+                        <p className="text-sm font-semibold text-slate-700">{payload[0].name}: {payload[0].value}</p>
                       </div>
                     );
                   }
@@ -199,15 +199,15 @@ export default function DashboardPage() {
           </ResponsiveContainer>
           {/* Center label */}
           <div className="text-center -mt-[120px] mb-[70px]">
-            <p className="text-2xl font-extrabold text-white">{mockAgents.length}</p>
-            <p className="text-[10px] text-slate-600 font-medium uppercase tracking-wider">Total</p>
+            <p className="text-2xl font-extrabold text-slate-800">{mockAgents.length}</p>
+            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Total</p>
           </div>
           <div className="grid grid-cols-2 gap-3 mt-2">
             {agentStatusData.map((entry) => (
-              <div key={entry.name} className="flex items-center gap-2 bg-slate-900/40 rounded-lg px-3 py-2">
+              <div key={entry.name} className="flex items-center gap-2 bg-slate-50/40 rounded-lg px-3 py-2">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
                 <span className="text-xs text-slate-400 font-medium">{entry.name}</span>
-                <span className="text-xs text-white font-bold ml-auto">{entry.value}</span>
+                <span className="text-xs text-slate-800 font-bold ml-auto">{entry.value}</span>
               </div>
             ))}
           </div>
@@ -218,8 +218,8 @@ export default function DashboardPage() {
       <div className="card p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-sm font-bold text-white">Trading Volume</h3>
-            <p className="text-xs text-slate-600 mt-1">Alpha Sentinel — Daily volume and trade count</p>
+            <h3 className="text-sm font-bold text-slate-800">Trading Volume</h3>
+            <p className="text-xs text-slate-500 mt-1">Alpha Sentinel — Daily volume and trade count</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="badge-info text-[10px]">7D</span>
@@ -230,12 +230,12 @@ export default function DashboardPage() {
             <defs>
               <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.9} />
-                <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.3} />
+                <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.15} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(30,41,59,0.5)" vertical={false} />
-            <XAxis dataKey="date" tick={{ fill: '#475569', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: '#475569', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(226,232,240,0.8)" vertical={false} />
+            <XAxis dataKey="date" tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
             <Tooltip content={<CustomTooltip />} />
             <Bar dataKey="volume" fill="url(#barGradient)" radius={[8, 8, 0, 0]} name="Volume" />
           </BarChart>
@@ -247,31 +247,31 @@ export default function DashboardPage() {
         {/* Recent Signals */}
         <div className="card p-6">
           <div className="flex items-center justify-between mb-5">
-            <h3 className="text-sm font-bold text-white">Recent Signals</h3>
-            <span className="text-[11px] text-slate-600 font-medium">{mockSignals.length} total</span>
+            <h3 className="text-sm font-bold text-slate-800">Recent Signals</h3>
+            <span className="text-[11px] text-slate-500 font-medium">{mockSignals.length} total</span>
           </div>
           <div className="space-y-1">
             {mockSignals.slice(0, 5).map((signal, idx) => (
               <div
                 key={signal.id}
-                className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-slate-800/30 transition-colors group"
+                className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-slate-50 transition-colors group"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${signal.side === 'buy' ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${signal.side === 'buy' ? 'bg-emerald-50' : 'bg-red-50'}`}>
                     {signal.side === 'buy' ? (
-                      <ArrowUpRight className="w-4 h-4 text-emerald-400" />
+                      <ArrowUpRight className="w-4 h-4 text-emerald-600" />
                     ) : (
-                      <ArrowDownRight className="w-4 h-4 text-red-400" />
+                      <ArrowDownRight className="w-4 h-4 text-red-600" />
                     )}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-200">{signal.agent_name}</p>
-                    <p className="text-[11px] text-slate-600 font-mono">{signal.condition_id}</p>
+                    <p className="text-sm font-medium text-slate-700">{signal.agent_name}</p>
+                    <p className="text-[11px] text-slate-500 font-mono">{signal.condition_id}</p>
                   </div>
                 </div>
                 <div className="text-right flex items-center gap-3">
                   <div>
-                    <p className="text-sm font-bold text-white">{formatUSD(signal.size_usdc)}</p>
+                    <p className="text-sm font-bold text-slate-800">{formatUSD(signal.size_usdc)}</p>
                     <p className="text-[11px] text-slate-500 font-medium">{(signal.confidence * 100).toFixed(0)}% conf</p>
                   </div>
                   <StatusBadge status={signal.status} />
@@ -284,30 +284,30 @@ export default function DashboardPage() {
         {/* Open Positions */}
         <div className="card p-6">
           <div className="flex items-center justify-between mb-5">
-            <h3 className="text-sm font-bold text-white">Open Positions</h3>
-            <span className="text-[11px] text-slate-600 font-medium">{mockPositions.filter(p => p.is_open).length} open</span>
+            <h3 className="text-sm font-bold text-slate-800">Open Positions</h3>
+            <span className="text-[11px] text-slate-500 font-medium">{mockPositions.filter(p => p.is_open).length} open</span>
           </div>
           <div className="space-y-1">
             {mockPositions.filter((p) => p.is_open).map((pos) => (
               <div
                 key={pos.id}
-                className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-slate-800/30 transition-colors group"
+                className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-slate-50 transition-colors group"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${pos.side === 'buy' ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${pos.side === 'buy' ? 'bg-emerald-50' : 'bg-red-50'}`}>
                     {pos.side === 'buy' ? (
-                      <ArrowUpRight className="w-4 h-4 text-emerald-400" />
+                      <ArrowUpRight className="w-4 h-4 text-emerald-600" />
                     ) : (
-                      <ArrowDownRight className="w-4 h-4 text-red-400" />
+                      <ArrowDownRight className="w-4 h-4 text-red-600" />
                     )}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-200">{pos.agent_name}</p>
-                    <p className="text-[11px] text-slate-600 font-mono">{pos.condition_id}</p>
+                    <p className="text-sm font-medium text-slate-700">{pos.agent_name}</p>
+                    <p className="text-[11px] text-slate-500 font-mono">{pos.condition_id}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-white">{formatUSD(pos.size_usdc)}</p>
+                  <p className="text-sm font-bold text-slate-800">{formatUSD(pos.size_usdc)}</p>
                   <p className={`text-[11px] font-bold ${getPnlColor(pos.unrealized_pnl || 0)}`}>
                     {(pos.unrealized_pnl || 0) >= 0 ? '+' : ''}{formatUSD(pos.unrealized_pnl || 0)}
                   </p>

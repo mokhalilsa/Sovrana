@@ -8,10 +8,10 @@ import { mockAuditLogs } from '@/lib/mock-data';
 import { format, parseISO } from 'date-fns';
 
 const severityIcons: Record<string, React.ReactNode> = {
-  info: <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center"><Info className="w-3.5 h-3.5 text-blue-400" /></div>,
-  warning: <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center"><AlertTriangle className="w-3.5 h-3.5 text-amber-400" /></div>,
-  error: <div className="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center"><XCircle className="w-3.5 h-3.5 text-red-400" /></div>,
-  critical: <div className="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center"><AlertCircle className="w-3.5 h-3.5 text-red-500" /></div>,
+  info: <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center"><Info className="w-3.5 h-3.5 text-blue-600" /></div>,
+  warning: <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center"><AlertTriangle className="w-3.5 h-3.5 text-amber-600" /></div>,
+  error: <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center"><XCircle className="w-3.5 h-3.5 text-red-600" /></div>,
+  critical: <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center"><AlertCircle className="w-3.5 h-3.5 text-red-500" /></div>,
 };
 
 export default function AuditLogPage() {
@@ -38,8 +38,8 @@ export default function AuditLogPage() {
       <div className="flex items-end justify-between">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">Audit Log</h1>
-            <div className="p-2 rounded-xl bg-slate-800/50">
+            <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Audit Log</h1>
+            <div className="p-2 rounded-xl bg-slate-100">
               <Shield className="w-4 h-4 text-slate-500" />
             </div>
           </div>
@@ -54,7 +54,7 @@ export default function AuditLogPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2 text-slate-600">
+        <div className="flex items-center gap-2 text-slate-500">
           <Filter className="w-4 h-4" />
           <span className="text-xs font-semibold uppercase tracking-wider">Filters</span>
         </div>
@@ -77,7 +77,7 @@ export default function AuditLogPage() {
             <option key={type} value={type}>{type}</option>
           ))}
         </select>
-        <span className="text-xs text-slate-600 font-medium ml-auto">{filtered.length} events</span>
+        <span className="text-xs text-slate-500 font-medium ml-auto">{filtered.length} events</span>
       </div>
 
       {/* Log Table */}
@@ -94,7 +94,7 @@ export default function AuditLogPage() {
           {
             key: 'event', header: 'Event Type',
             render: (l) => (
-              <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900/50 text-slate-300 ring-1 ring-slate-800/40 font-semibold">
+              <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-50 text-slate-500 ring-1 ring-slate-200 font-semibold">
                 {l.event_type}
               </span>
             ),
@@ -102,14 +102,14 @@ export default function AuditLogPage() {
           {
             key: 'agent', header: 'Agent',
             render: (l) => l.agent_name ? (
-              <span className="text-sm font-semibold text-slate-200">{l.agent_name}</span>
+              <span className="text-sm font-semibold text-slate-700">{l.agent_name}</span>
             ) : (
-              <span className="text-xs text-slate-600 font-medium">System</span>
+              <span className="text-xs text-slate-500 font-medium">System</span>
             ),
           },
           {
             key: 'message', header: 'Message',
-            render: (l) => <p className="text-sm text-slate-300 max-w-md leading-relaxed">{l.message}</p>,
+            render: (l) => <p className="text-sm text-slate-500 max-w-md leading-relaxed">{l.message}</p>,
           },
           {
             key: 'sev_badge', header: 'Severity',

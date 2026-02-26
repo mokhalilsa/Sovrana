@@ -32,7 +32,7 @@ export default function LiveTradesPage() {
       <div className="flex items-end justify-between">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">Live Trades</h1>
+            <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Live Trades</h1>
             {isLive && (
               <span className="badge-success text-[10px] flex items-center gap-1.5">
                 <span className="relative flex h-1.5 w-1.5">
@@ -57,7 +57,7 @@ export default function LiveTradesPage() {
       {/* Error */}
       {error && (
         <div className="card p-4 border-red-500/20 bg-red-500/5">
-          <p className="text-sm text-red-400 font-medium">API Error: {error}</p>
+          <p className="text-sm text-red-600 font-medium">API Error: {error}</p>
         </div>
       )}
 
@@ -74,7 +74,7 @@ export default function LiveTradesPage() {
         <div className="card overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-800/60">
+              <tr className="border-b border-slate-200">
                 <th className="text-left px-5 py-4 table-header">Time</th>
                 <th className="text-left px-5 py-4 table-header">Market</th>
                 <th className="text-left px-5 py-4 table-header">Side</th>
@@ -92,19 +92,19 @@ export default function LiveTradesPage() {
                     {trade.match_time ? new Date(trade.match_time).toLocaleString() : '—'}
                   </td>
                   <td className="px-5 py-4">
-                    <p className="text-white font-semibold text-sm">{trade.title || trade.market_slug || trade.market}</p>
+                    <p className="text-slate-800 font-semibold text-sm">{trade.title || trade.market_slug || trade.market}</p>
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-2">
-                      <div className={`w-6 h-6 rounded-md flex items-center justify-center ${trade.side === 'BUY' ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
-                        {trade.side === 'BUY' ? <ArrowUpRight className="w-3 h-3 text-emerald-400" /> : <ArrowDownRight className="w-3 h-3 text-red-400" />}
+                      <div className={`w-6 h-6 rounded-md flex items-center justify-center ${trade.side === 'BUY' ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                        {trade.side === 'BUY' ? <ArrowUpRight className="w-3 h-3 text-emerald-600" /> : <ArrowDownRight className="w-3 h-3 text-red-600" />}
                       </div>
                       <StatusBadge status={trade.side === 'BUY' ? 'buy' : 'sell'} />
                     </div>
                   </td>
-                  <td className="px-5 py-4 text-slate-300 font-medium">{trade.outcome || '—'}</td>
-                  <td className="px-5 py-4 text-right font-mono text-white font-bold">${parseFloat(trade.price || '0').toFixed(4)}</td>
-                  <td className="px-5 py-4 text-right font-mono text-slate-300 font-semibold">{parseFloat(trade.size || '0').toFixed(2)}</td>
+                  <td className="px-5 py-4 text-slate-500 font-medium">{trade.outcome || '—'}</td>
+                  <td className="px-5 py-4 text-right font-mono text-slate-800 font-bold">${parseFloat(trade.price || '0').toFixed(4)}</td>
+                  <td className="px-5 py-4 text-right font-mono text-slate-500 font-semibold">{parseFloat(trade.size || '0').toFixed(2)}</td>
                   <td className="px-5 py-4 text-right font-mono text-slate-500">{trade.fee_rate_bps || '—'}</td>
                   <td className="px-5 py-4">
                     <StatusBadge status={trade.status?.toLowerCase() || 'matched'} />
@@ -121,7 +121,7 @@ export default function LiveTradesPage() {
         <div className="text-center py-24">
           <ArrowUpDown className="w-12 h-12 text-slate-700 mx-auto mb-4" />
           <p className="text-slate-400 font-semibold">No trades found</p>
-          <p className="text-sm text-slate-600 mt-1">Your Polymarket wallet has no trade history</p>
+          <p className="text-sm text-slate-500 mt-1">Your Polymarket wallet has no trade history</p>
         </div>
       )}
     </div>

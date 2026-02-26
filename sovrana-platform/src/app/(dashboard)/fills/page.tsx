@@ -30,7 +30,7 @@ export default function FillsPage() {
       {/* Header */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">Fills</h1>
+          <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Fills</h1>
           <p className="text-sm text-slate-500 mt-1">Executed trade fills across all agents</p>
         </div>
       </div>
@@ -44,7 +44,7 @@ export default function FillsPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2 text-slate-600">
+        <div className="flex items-center gap-2 text-slate-500">
           <Filter className="w-4 h-4" />
           <span className="text-xs font-semibold uppercase tracking-wider">Filters</span>
         </div>
@@ -59,7 +59,7 @@ export default function FillsPage() {
           <option value="buy">Buy</option>
           <option value="sell">Sell</option>
         </select>
-        <span className="text-xs text-slate-600 font-medium ml-auto">{filtered.length} fills</span>
+        <span className="text-xs text-slate-500 font-medium ml-auto">{filtered.length} fills</span>
       </div>
 
       {/* Fills Table */}
@@ -69,8 +69,8 @@ export default function FillsPage() {
             key: 'id', header: 'Fill',
             render: (f) => (
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${f.side === 'buy' ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
-                  {f.side === 'buy' ? <ArrowUpRight className="w-4 h-4 text-emerald-400" /> : <ArrowDownRight className="w-4 h-4 text-red-400" />}
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${f.side === 'buy' ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                  {f.side === 'buy' ? <ArrowUpRight className="w-4 h-4 text-emerald-600" /> : <ArrowDownRight className="w-4 h-4 text-red-600" />}
                 </div>
                 <div>
                   <span className="text-[11px] text-slate-500 font-mono">{f.id}</span>
@@ -81,7 +81,7 @@ export default function FillsPage() {
           },
           {
             key: 'agent', header: 'Agent',
-            render: (f) => <p className="text-sm font-semibold text-slate-200">{f.agent_name}</p>,
+            render: (f) => <p className="text-sm font-semibold text-slate-700">{f.agent_name}</p>,
           },
           {
             key: 'side', header: 'Side',
@@ -93,15 +93,15 @@ export default function FillsPage() {
           },
           {
             key: 'price', header: 'Fill Price',
-            render: (f) => <span className="font-mono text-sm font-semibold text-white">${f.fill_price.toFixed(4)}</span>,
+            render: (f) => <span className="font-mono text-sm font-semibold text-slate-800">${f.fill_price.toFixed(4)}</span>,
           },
           {
             key: 'size', header: 'Fill Size',
-            render: (f) => <span className="font-mono text-sm font-semibold text-white">{formatUSD(f.fill_size_usdc)}</span>,
+            render: (f) => <span className="font-mono text-sm font-semibold text-slate-800">{formatUSD(f.fill_size_usdc)}</span>,
           },
           {
             key: 'fee', header: 'Fee',
-            render: (f) => <span className="font-mono text-sm text-red-400 font-semibold">{formatUSD(f.fee_usdc)}</span>,
+            render: (f) => <span className="font-mono text-sm text-red-600 font-semibold">{formatUSD(f.fee_usdc)}</span>,
           },
           {
             key: 'time', header: 'Filled At',

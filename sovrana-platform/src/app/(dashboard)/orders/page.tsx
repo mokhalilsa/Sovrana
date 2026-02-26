@@ -36,7 +36,7 @@ export default function OrdersPage() {
       {/* Header */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">Orders</h1>
+          <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Orders</h1>
           <p className="text-sm text-slate-500 mt-1">All trading orders placed by agents on Polymarket</p>
         </div>
         <div className="flex items-center gap-2">
@@ -47,7 +47,7 @@ export default function OrdersPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2 text-slate-600">
+        <div className="flex items-center gap-2 text-slate-500">
           <Filter className="w-4 h-4" />
           <span className="text-xs font-semibold uppercase tracking-wider">Filters</span>
         </div>
@@ -72,7 +72,7 @@ export default function OrdersPage() {
             <option key={name} value={name}>{name}</option>
           ))}
         </select>
-        <span className="text-xs text-slate-600 font-medium ml-auto">{filtered.length} orders</span>
+        <span className="text-xs text-slate-500 font-medium ml-auto">{filtered.length} orders</span>
       </div>
 
       {/* Orders Table */}
@@ -82,8 +82,8 @@ export default function OrdersPage() {
             key: 'id', header: 'Order',
             render: (o) => (
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${o.side === 'buy' ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
-                  {o.side === 'buy' ? <ArrowUpRight className="w-4 h-4 text-emerald-400" /> : <ArrowDownRight className="w-4 h-4 text-red-400" />}
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${o.side === 'buy' ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                  {o.side === 'buy' ? <ArrowUpRight className="w-4 h-4 text-emerald-600" /> : <ArrowDownRight className="w-4 h-4 text-red-600" />}
                 </div>
                 <div>
                   <span className="text-[11px] text-slate-500 font-mono">{o.id}</span>
@@ -96,7 +96,7 @@ export default function OrdersPage() {
           },
           {
             key: 'agent', header: 'Agent',
-            render: (o) => <p className="text-sm font-semibold text-slate-200">{o.agent_name}</p>,
+            render: (o) => <p className="text-sm font-semibold text-slate-700">{o.agent_name}</p>,
           },
           {
             key: 'side', header: 'Side',
@@ -112,11 +112,11 @@ export default function OrdersPage() {
           },
           {
             key: 'price', header: 'Price',
-            render: (o) => <span className="font-mono text-sm font-semibold text-white">{o.price ? `$${o.price.toFixed(3)}` : 'Market'}</span>,
+            render: (o) => <span className="font-mono text-sm font-semibold text-slate-800">{o.price ? `$${o.price.toFixed(3)}` : 'Market'}</span>,
           },
           {
             key: 'size', header: 'Size',
-            render: (o) => <span className="font-mono text-sm font-semibold text-white">{formatUSD(o.size_usdc)}</span>,
+            render: (o) => <span className="font-mono text-sm font-semibold text-slate-800">{formatUSD(o.size_usdc)}</span>,
           },
           {
             key: 'status', header: 'Status',
@@ -124,7 +124,7 @@ export default function OrdersPage() {
               <div>
                 <StatusBadge status={o.status} />
                 {o.block_reason && (
-                  <p className="text-[10px] text-red-400/80 mt-1">{o.block_reason}</p>
+                  <p className="text-[10px] text-red-600/80 mt-1">{o.block_reason}</p>
                 )}
               </div>
             ),
@@ -142,7 +142,7 @@ export default function OrdersPage() {
             render: (o) => (o.status === 'placed' || o.status === 'pending' || o.status === 'partial') ? (
               <button
                 onClick={() => cancelOrder(o.id)}
-                className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all ring-1 ring-red-500/20"
+                className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-500/20 transition-all ring-1 ring-red-200"
                 title="Cancel Order"
               >
                 <XCircle className="w-3.5 h-3.5" />

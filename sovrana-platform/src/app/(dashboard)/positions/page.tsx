@@ -30,7 +30,7 @@ export default function PositionsPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-extrabold text-white tracking-tight">Positions</h1>
+        <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Positions</h1>
         <p className="text-sm text-slate-500 mt-1">Current and historical positions across all agents</p>
       </div>
 
@@ -43,7 +43,7 @@ export default function PositionsPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2 text-slate-600">
+        <div className="flex items-center gap-2 text-slate-500">
           <Filter className="w-4 h-4" />
           <span className="text-xs font-semibold uppercase tracking-wider">Filters</span>
         </div>
@@ -58,7 +58,7 @@ export default function PositionsPage() {
           <option value="open">Open Only</option>
           <option value="closed">Closed Only</option>
         </select>
-        <span className="text-xs text-slate-600 font-medium ml-auto">{filtered.length} positions</span>
+        <span className="text-xs text-slate-500 font-medium ml-auto">{filtered.length} positions</span>
       </div>
 
       {/* Positions Table */}
@@ -68,8 +68,8 @@ export default function PositionsPage() {
             key: 'id', header: 'Position',
             render: (p) => (
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${p.side === 'buy' ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
-                  {p.side === 'buy' ? <ArrowUpRight className="w-4 h-4 text-emerald-400" /> : <ArrowDownRight className="w-4 h-4 text-red-400" />}
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${p.side === 'buy' ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                  {p.side === 'buy' ? <ArrowUpRight className="w-4 h-4 text-emerald-600" /> : <ArrowDownRight className="w-4 h-4 text-red-600" />}
                 </div>
                 <span className="text-[11px] text-slate-500 font-mono">{p.id}</span>
               </div>
@@ -77,7 +77,7 @@ export default function PositionsPage() {
           },
           {
             key: 'agent', header: 'Agent',
-            render: (p) => <p className="text-sm font-semibold text-slate-200">{p.agent_name}</p>,
+            render: (p) => <p className="text-sm font-semibold text-slate-700">{p.agent_name}</p>,
           },
           {
             key: 'market', header: 'Market',
@@ -89,15 +89,15 @@ export default function PositionsPage() {
           },
           {
             key: 'size', header: 'Size',
-            render: (p) => <span className="font-mono text-sm font-semibold text-white">{formatUSD(p.size_usdc)}</span>,
+            render: (p) => <span className="font-mono text-sm font-semibold text-slate-800">{formatUSD(p.size_usdc)}</span>,
           },
           {
             key: 'entry', header: 'Entry',
-            render: (p) => <span className="font-mono text-sm text-slate-300">${p.avg_entry_price.toFixed(4)}</span>,
+            render: (p) => <span className="font-mono text-sm text-slate-500">${p.avg_entry_price.toFixed(4)}</span>,
           },
           {
             key: 'current', header: 'Current',
-            render: (p) => <span className="font-mono text-sm text-slate-300">{p.current_price ? `$${p.current_price.toFixed(4)}` : '—'}</span>,
+            render: (p) => <span className="font-mono text-sm text-slate-500">{p.current_price ? `$${p.current_price.toFixed(4)}` : '—'}</span>,
           },
           {
             key: 'upnl', header: 'Unrealized',

@@ -23,12 +23,12 @@ import { format, parseISO } from 'date-fns';
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-[#111827] border border-slate-700/60 rounded-xl p-3.5 shadow-2xl backdrop-blur-xl">
+      <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-lg">
         <p className="text-[11px] text-slate-500 font-medium mb-2">{label}</p>
         {payload.map((entry: any, idx: number) => (
           <div key={idx} className="flex items-center gap-2 mb-0.5">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-            <p className="text-sm font-semibold text-slate-200">
+            <p className="text-sm font-semibold text-slate-700">
               {entry.name}: {formatUSD(entry.value)}
             </p>
           </div>
@@ -56,7 +56,7 @@ export default function AgentDetailPage() {
         <div className="text-center">
           <Bot className="w-12 h-12 text-slate-700 mx-auto mb-4" />
           <p className="text-lg text-slate-400 font-semibold">Agent not found</p>
-          <Link href="/agents" className="text-blue-400 hover:text-blue-300 text-sm mt-3 inline-block font-medium">
+          <Link href="/agents" className="text-blue-600 hover:text-blue-300 text-sm mt-3 inline-block font-medium">
             Back to Agents
           </Link>
         </div>
@@ -78,7 +78,7 @@ export default function AgentDetailPage() {
   return (
     <div className="space-y-8">
       {/* Back Link */}
-      <Link href="/agents" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-white transition-colors font-medium">
+      <Link href="/agents" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition-colors font-medium">
         <ArrowLeft className="w-4 h-4" />
         Back to Agents
       </Link>
@@ -88,18 +88,18 @@ export default function AgentDetailPage() {
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-5">
             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
-              agent.status === 'running' ? 'bg-emerald-500/10 ring-1 ring-emerald-500/20' :
-              agent.status === 'errored' ? 'bg-red-500/10 ring-1 ring-red-500/20' :
-              'bg-slate-500/10 ring-1 ring-slate-500/20'
+              agent.status === 'running' ? 'bg-emerald-50 ring-1 ring-emerald-200' :
+              agent.status === 'errored' ? 'bg-red-50 ring-1 ring-red-200' :
+              'bg-slate-50 ring-1 ring-slate-200'
             }`}>
               <Bot className={`w-8 h-8 ${
-                agent.status === 'running' ? 'text-emerald-400' :
-                agent.status === 'errored' ? 'text-red-400' :
+                agent.status === 'running' ? 'text-emerald-600' :
+                agent.status === 'errored' ? 'text-red-600' :
                 'text-slate-400'
               }`} />
             </div>
             <div>
-              <h1 className="text-2xl font-extrabold text-white tracking-tight">{agent.name}</h1>
+              <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">{agent.name}</h1>
               <p className="text-sm text-slate-500 mt-1">{agent.description}</p>
               <div className="flex items-center gap-2 mt-3">
                 <StatusBadge status={agent.status} dot />
@@ -135,7 +135,7 @@ export default function AgentDetailPage() {
         <div className="card p-6">
           <div className="flex items-center gap-2 mb-5">
             <Shield className="w-4 h-4 text-slate-500" />
-            <h3 className="text-sm font-bold text-white">Risk Limits</h3>
+            <h3 className="text-sm font-bold text-slate-800">Risk Limits</h3>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {[
@@ -146,9 +146,9 @@ export default function AgentDetailPage() {
               { label: 'Cooldown', value: `${risk.cooldown_seconds}s` },
               { label: 'Max Open Orders', value: risk.max_open_orders.toString() },
             ].map((item) => (
-              <div key={item.label} className="bg-slate-900/50 rounded-xl px-4 py-3.5 ring-1 ring-slate-800/40">
-                <p className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">{item.label}</p>
-                <p className="text-lg font-bold text-white mt-1">{item.value}</p>
+              <div key={item.label} className="bg-slate-50 rounded-xl px-4 py-3.5 ring-1 ring-slate-200">
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{item.label}</p>
+                <p className="text-lg font-bold text-slate-800 mt-1">{item.value}</p>
               </div>
             ))}
           </div>
@@ -158,18 +158,18 @@ export default function AgentDetailPage() {
       {/* PnL Chart */}
       {pnlData.length > 0 && (
         <div className="card p-6">
-          <h3 className="text-sm font-bold text-white mb-5">PnL History</h3>
+          <h3 className="text-sm font-bold text-slate-800 mb-5">PnL History</h3>
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={pnlData}>
               <defs>
                 <linearGradient id="colorTotal2" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.25} />
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.12} />
                   <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(30,41,59,0.5)" vertical={false} />
-              <XAxis dataKey="date" tick={{ fill: '#475569', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#475569', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(226,232,240,0.8)" vertical={false} />
+              <XAxis dataKey="date" tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
               <Tooltip content={<CustomTooltip />} />
               <Area type="monotone" dataKey="total" stroke="#10b981" fill="url(#colorTotal2)" strokeWidth={2.5} name="Total PnL" dot={false} />
             </AreaChart>
@@ -179,20 +179,20 @@ export default function AgentDetailPage() {
 
       {/* Recent Signals */}
       <div className="card p-6">
-        <h3 className="text-sm font-bold text-white mb-5">Recent Signals <span className="text-slate-600">({agentSignals.length})</span></h3>
+        <h3 className="text-sm font-bold text-slate-800 mb-5">Recent Signals <span className="text-slate-500">({agentSignals.length})</span></h3>
         <DataTable
           columns={[
             { key: 'id', header: 'ID', render: (s) => <span className="text-[11px] text-slate-500 font-mono">{s.id}</span> },
             { key: 'side', header: 'Side', render: (s) => <StatusBadge status={s.side} /> },
             { key: 'condition', header: 'Market', render: (s) => <span className="text-sm text-slate-400 font-mono">{s.condition_id}</span> },
-            { key: 'price', header: 'Price', render: (s) => <span className="font-mono text-white font-semibold">${s.price.toFixed(3)}</span> },
-            { key: 'size', header: 'Size', render: (s) => <span className="font-mono text-white font-semibold">{formatUSD(s.size_usdc)}</span> },
+            { key: 'price', header: 'Price', render: (s) => <span className="font-mono text-slate-800 font-semibold">${s.price.toFixed(3)}</span> },
+            { key: 'size', header: 'Size', render: (s) => <span className="font-mono text-slate-800 font-semibold">{formatUSD(s.size_usdc)}</span> },
             { key: 'confidence', header: 'Confidence', render: (s) => (
               <div className="flex items-center gap-2">
-                <div className="w-12 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div className="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                   <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full" style={{ width: `${s.confidence * 100}%` }} />
                 </div>
-                <span className="font-mono text-sm font-semibold text-white">{(s.confidence * 100).toFixed(0)}%</span>
+                <span className="font-mono text-sm font-semibold text-slate-800">{(s.confidence * 100).toFixed(0)}%</span>
               </div>
             )},
             { key: 'status', header: 'Status', render: (s) => <StatusBadge status={s.status} /> },
@@ -204,14 +204,14 @@ export default function AgentDetailPage() {
 
       {/* Positions */}
       <div className="card p-6">
-        <h3 className="text-sm font-bold text-white mb-5">Positions <span className="text-slate-600">({agentPositions.length})</span></h3>
+        <h3 className="text-sm font-bold text-slate-800 mb-5">Positions <span className="text-slate-500">({agentPositions.length})</span></h3>
         <DataTable
           columns={[
             { key: 'condition', header: 'Market', render: (p) => <span className="text-sm text-slate-400 font-mono">{p.condition_id}</span> },
             { key: 'side', header: 'Side', render: (p) => <StatusBadge status={p.side} /> },
-            { key: 'size', header: 'Size', render: (p) => <span className="font-mono text-white font-semibold">{formatUSD(p.size_usdc)}</span> },
-            { key: 'entry', header: 'Entry', render: (p) => <span className="font-mono text-slate-300">${p.avg_entry_price.toFixed(3)}</span> },
-            { key: 'current', header: 'Current', render: (p) => <span className="font-mono text-slate-300">${(p.current_price || 0).toFixed(3)}</span> },
+            { key: 'size', header: 'Size', render: (p) => <span className="font-mono text-slate-800 font-semibold">{formatUSD(p.size_usdc)}</span> },
+            { key: 'entry', header: 'Entry', render: (p) => <span className="font-mono text-slate-500">${p.avg_entry_price.toFixed(3)}</span> },
+            { key: 'current', header: 'Current', render: (p) => <span className="font-mono text-slate-500">${(p.current_price || 0).toFixed(3)}</span> },
             { key: 'upnl', header: 'Unrealized PnL', render: (p) => <span className={`font-mono font-bold ${getPnlColor(p.unrealized_pnl || 0)}`}>{formatUSD(p.unrealized_pnl || 0)}</span> },
             { key: 'open', header: 'Status', render: (p) => <StatusBadge status={p.is_open ? 'active' : 'closed'} dot={p.is_open} /> },
           ]}

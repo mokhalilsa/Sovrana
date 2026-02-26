@@ -36,16 +36,16 @@ const statusMap: Record<string, { cls: string; label?: string }> = {
 };
 
 const dotColorMap: Record<string, string> = {
-  running: 'bg-emerald-400',
-  idle: 'bg-blue-400',
-  errored: 'bg-red-400',
-  stopped: 'bg-amber-400',
-  buy: 'bg-emerald-400',
-  sell: 'bg-red-400',
-  executed: 'bg-emerald-400',
-  pending: 'bg-amber-400',
-  filled: 'bg-emerald-400',
-  active: 'bg-emerald-400',
+  running: 'bg-emerald-500',
+  idle: 'bg-blue-500',
+  errored: 'bg-red-500',
+  stopped: 'bg-amber-500',
+  buy: 'bg-emerald-500',
+  sell: 'bg-red-500',
+  executed: 'bg-emerald-500',
+  pending: 'bg-amber-500',
+  filled: 'bg-emerald-500',
+  active: 'bg-emerald-500',
 };
 
 export default function StatusBadge({ status, className = '', size = 'sm', dot = false }: StatusBadgeProps) {

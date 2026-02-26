@@ -37,7 +37,7 @@ export default function LivePositionsPage() {
       <div className="flex items-end justify-between">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">Live Positions</h1>
+            <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Live Positions</h1>
             {isLive && (
               <span className="badge-success text-[10px] flex items-center gap-1.5">
                 <span className="relative flex h-1.5 w-1.5">
@@ -67,8 +67,8 @@ export default function LivePositionsPage() {
       {/* Error */}
       {error && (
         <div className="card p-4 border-red-500/20 bg-red-500/5">
-          <p className="text-sm text-red-400 font-medium">API Error: {error}</p>
-          <p className="text-xs text-slate-600 mt-1">Ensure your wallet address is configured in .env.local</p>
+          <p className="text-sm text-red-600 font-medium">API Error: {error}</p>
+          <p className="text-xs text-slate-500 mt-1">Ensure your wallet address is configured in .env.local</p>
         </div>
       )}
 
@@ -85,7 +85,7 @@ export default function LivePositionsPage() {
         <div className="card overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-800/60">
+              <tr className="border-b border-slate-200">
                 <th className="text-left px-5 py-4 table-header">Market</th>
                 <th className="text-left px-5 py-4 table-header">Outcome</th>
                 <th className="text-right px-5 py-4 table-header">Size</th>
@@ -99,24 +99,24 @@ export default function LivePositionsPage() {
               {positions.map((pos, idx) => (
                 <tr key={idx} className="table-row animate-slide-up" style={{ animationDelay: `${idx * 20}ms` }}>
                   <td className="px-5 py-4">
-                    <p className="text-white font-semibold text-sm">{pos.title || pos.market_slug}</p>
+                    <p className="text-slate-800 font-semibold text-sm">{pos.title || pos.market_slug}</p>
                     <p className="text-[10px] text-slate-700 font-mono">{pos.condition_id?.slice(0, 16)}...</p>
                   </td>
                   <td className="px-5 py-4">
                     <StatusBadge status={pos.outcome === 'Yes' ? 'buy' : 'sell'} />
                   </td>
-                  <td className="px-5 py-4 text-right font-mono text-slate-300 font-semibold">{pos.size?.toFixed(2)}</td>
-                  <td className="px-5 py-4 text-right font-mono text-slate-300">${pos.avg_price?.toFixed(4)}</td>
-                  <td className="px-5 py-4 text-right font-mono text-slate-300">${pos.cur_price?.toFixed(4)}</td>
-                  <td className="px-5 py-4 text-right font-mono text-white font-bold">${pos.current_value?.toFixed(2)}</td>
+                  <td className="px-5 py-4 text-right font-mono text-slate-500 font-semibold">{pos.size?.toFixed(2)}</td>
+                  <td className="px-5 py-4 text-right font-mono text-slate-500">${pos.avg_price?.toFixed(4)}</td>
+                  <td className="px-5 py-4 text-right font-mono text-slate-500">${pos.cur_price?.toFixed(4)}</td>
+                  <td className="px-5 py-4 text-right font-mono text-slate-800 font-bold">${pos.current_value?.toFixed(2)}</td>
                   <td className="px-5 py-4 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       {(pos.pnl || 0) >= 0 ? (
-                        <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                        <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
                       ) : (
-                        <TrendingDown className="w-3.5 h-3.5 text-red-400" />
+                        <TrendingDown className="w-3.5 h-3.5 text-red-600" />
                       )}
-                      <span className={`font-mono font-bold ${(pos.pnl || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <span className={`font-mono font-bold ${(pos.pnl || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                         {(pos.pnl || 0) >= 0 ? '+' : ''}${(pos.pnl || 0).toFixed(2)}
                       </span>
                     </div>
@@ -133,7 +133,7 @@ export default function LivePositionsPage() {
         <div className="text-center py-24">
           <Wallet className="w-12 h-12 text-slate-700 mx-auto mb-4" />
           <p className="text-slate-400 font-semibold">No open positions found</p>
-          <p className="text-sm text-slate-600 mt-1">Your Polymarket wallet has no active positions</p>
+          <p className="text-sm text-slate-500 mt-1">Your Polymarket wallet has no active positions</p>
         </div>
       )}
     </div>

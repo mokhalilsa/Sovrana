@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import Sidebar from '@/components/Sidebar';
-import Header from '@/components/Header';
+import AuthProvider from '@/components/AuthProvider';
 
 export const metadata: Metadata = {
   title: 'Sovrana | Polymarket Agent Platform',
-  description: 'Autonomous AI trading agent operations dashboard for Polymarket prediction markets.',
+  description: 'AI-powered autonomous trading agent operations dashboard for Polymarket',
 };
 
 export default function RootLayout({
@@ -14,15 +13,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="min-h-screen relative">
-        <Sidebar />
-        <div className="ml-[260px] min-h-screen flex flex-col relative z-10">
-          <Header />
-          <main className="flex-1 p-8">
-            {children}
-          </main>
-        </div>
+    <html lang="en">
+      <body className="bg-white text-slate-800 min-h-screen">
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

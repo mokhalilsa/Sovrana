@@ -39,7 +39,7 @@ export default function SignalsPage() {
       {/* Header */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">Signals</h1>
+          <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Signals</h1>
           <p className="text-sm text-slate-500 mt-1">AI-generated trading signals from all agents</p>
         </div>
         {pendingCount > 0 && (
@@ -55,7 +55,7 @@ export default function SignalsPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2 text-slate-600">
+        <div className="flex items-center gap-2 text-slate-500">
           <Filter className="w-4 h-4" />
           <span className="text-xs font-semibold uppercase tracking-wider">Filters</span>
         </div>
@@ -78,7 +78,7 @@ export default function SignalsPage() {
             <option key={name} value={name}>{name}</option>
           ))}
         </select>
-        <span className="text-xs text-slate-600 font-medium ml-auto">{filtered.length} signals</span>
+        <span className="text-xs text-slate-500 font-medium ml-auto">{filtered.length} signals</span>
       </div>
 
       {/* Signals Table */}
@@ -88,10 +88,10 @@ export default function SignalsPage() {
             key: 'id', header: 'Signal',
             render: (s) => (
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${s.side === 'buy' ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
-                  {s.side === 'buy' ? <ArrowUpRight className="w-4 h-4 text-emerald-400" /> : <ArrowDownRight className="w-4 h-4 text-red-400" />}
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${s.side === 'buy' ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                  {s.side === 'buy' ? <ArrowUpRight className="w-4 h-4 text-emerald-600" /> : <ArrowDownRight className="w-4 h-4 text-red-600" />}
                 </div>
-                <span className="text-[11px] text-slate-600 font-mono">{s.id}</span>
+                <span className="text-[11px] text-slate-500 font-mono">{s.id}</span>
               </div>
             ),
           },
@@ -99,8 +99,8 @@ export default function SignalsPage() {
             key: 'agent', header: 'Agent',
             render: (s) => (
               <div>
-                <p className="text-sm font-semibold text-slate-200">{s.agent_name}</p>
-                <p className="text-[11px] text-slate-600 font-mono">{s.agent_id}</p>
+                <p className="text-sm font-semibold text-slate-700">{s.agent_name}</p>
+                <p className="text-[11px] text-slate-500 font-mono">{s.agent_id}</p>
               </div>
             ),
           },
@@ -114,17 +114,17 @@ export default function SignalsPage() {
           },
           {
             key: 'price', header: 'Price',
-            render: (s) => <span className="font-mono text-sm font-semibold text-white">${s.price.toFixed(3)}</span>,
+            render: (s) => <span className="font-mono text-sm font-semibold text-slate-800">${s.price.toFixed(3)}</span>,
           },
           {
             key: 'size', header: 'Size',
-            render: (s) => <span className="font-mono text-sm font-semibold text-white">{formatUSD(s.size_usdc)}</span>,
+            render: (s) => <span className="font-mono text-sm font-semibold text-slate-800">{formatUSD(s.size_usdc)}</span>,
           },
           {
             key: 'confidence', header: 'Confidence',
             render: (s) => (
               <div className="flex items-center gap-2.5">
-                <div className="w-16 h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div className="w-16 h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all ${
                       s.confidence >= 0.8 ? 'bg-emerald-500' :
@@ -133,7 +133,7 @@ export default function SignalsPage() {
                     style={{ width: `${s.confidence * 100}%` }}
                   />
                 </div>
-                <span className="text-xs font-mono font-bold text-slate-300">{(s.confidence * 100).toFixed(0)}%</span>
+                <span className="text-xs font-mono font-bold text-slate-500">{(s.confidence * 100).toFixed(0)}%</span>
               </div>
             ),
           },
@@ -143,7 +143,7 @@ export default function SignalsPage() {
               <div>
                 <StatusBadge status={s.status} />
                 {s.rejection_reason && (
-                  <p className="text-[10px] text-red-400/80 mt-1">{s.rejection_reason}</p>
+                  <p className="text-[10px] text-red-600/80 mt-1">{s.rejection_reason}</p>
                 )}
               </div>
             ),
@@ -158,14 +158,14 @@ export default function SignalsPage() {
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => approveSignal(s.id)}
-                  className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all ring-1 ring-emerald-500/20"
+                  className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-500/20 transition-all ring-1 ring-emerald-200"
                   title="Approve"
                 >
                   <Check className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => rejectSignal(s.id)}
-                  className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all ring-1 ring-red-500/20"
+                  className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-500/20 transition-all ring-1 ring-red-200"
                   title="Reject"
                 >
                   <X className="w-3.5 h-3.5" />
