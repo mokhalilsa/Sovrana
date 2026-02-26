@@ -1,21 +1,30 @@
 'use client';
 
 import { useState } from 'react';
-import { Briefcase, Filter, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Briefcase, Filter, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, X, LogOut } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import DataTable from '@/components/DataTable';
 import StatsCard from '@/components/StatsCard';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { useToast } from '@/components/Toast';
 import { mockPositions } from '@/lib/mock-data';
 import { formatUSD, getPnlColor } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
+import { Position } from '@/types';
 
 export default function PositionsPage() {
+  const [positions, setPositions] = useState<Position[]>(mockPositions);
   const [filterAgent, setFilterAgent] = useState<string>('all');
   const [filterOpen, setFilterOpen] = useState<string>('all');
+  const { addToast } = useToast();
 
-  const agentNames = [...new Set(mockPositions.map((p) => p.agent_name))];
+  const [confirmClose, setConfirmClose] = useState<{ isOpen: boolean; posId: string; agentName: string; market: string }>({
+    isOpen: false, posId: '', agentName: '', market: '',
+  });
 
-  const filtered = mockPositions.filter((p) => {
+  const agentNames = [...new Set(positions.map((p) => p.agent_name))];
+
+  const filtered = positions.filter((p) => {
     if (filterAgent !== 'all' && p.agent_name !== filterAgent) return false;
     if (filterOpen === 'open' && !p.is_open) return false;
     if (filterOpen === 'closed' && p.is_open) return false;
@@ -25,6 +34,25 @@ export default function PositionsPage() {
   const totalUnrealized = filtered.reduce((sum, p) => sum + (p.unrealized_pnl || 0), 0);
   const totalRealized = filtered.reduce((sum, p) => sum + p.realized_pnl, 0);
   const totalSize = filtered.filter((p) => p.is_open).reduce((sum, p) => sum + p.size_usdc, 0);
+
+  const handleClosePosition = (id: string, agentName: string, market: string) => {
+    setConfirmClose({ isOpen: true, posId: id, agentName, market });
+  };
+
+  const confirmCloseAction = () => {
+    setPositions(prev => prev.map(p =>
+      p.id === confirmClose.posId
+        ? { ...p, is_open: false, closed_at: new Date().toISOString(), realized_pnl: p.realized_pnl + (p.unrealized_pnl || 0), unrealized_pnl: 0 }
+        : p
+    ));
+    addToast('success', 'Position Closed', `Position for ${confirmClose.market} by ${confirmClose.agentName} has been closed.`);
+  };
+
+  const handleClearFilters = () => {
+    setFilterAgent('all');
+    setFilterOpen('all');
+    addToast('info', 'Filters Cleared', 'All filters have been reset.');
+  };
 
   return (
     <div className="space-y-8">
@@ -58,6 +86,11 @@ export default function PositionsPage() {
           <option value="open">Open Only</option>
           <option value="closed">Closed Only</option>
         </select>
+        {(filterAgent !== 'all' || filterOpen !== 'all') && (
+          <button onClick={handleClearFilters} className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+            <X className="w-3 h-3" /> Clear
+          </button>
+        )}
         <span className="text-xs text-slate-500 font-medium ml-auto">{filtered.length} positions</span>
       </div>
 
@@ -122,12 +155,31 @@ export default function PositionsPage() {
             ),
           },
           {
-            key: 'opened', header: 'Opened',
-            render: (p) => <span className="text-xs text-slate-500 font-mono">{format(parseISO(p.opened_at), 'MMM dd, HH:mm')}</span>,
+            key: 'actions', header: '',
+            render: (p) => p.is_open ? (
+              <button
+                onClick={() => handleClosePosition(p.id, p.agent_name, p.condition_id)}
+                className="p-2 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-all ring-1 ring-amber-200 cursor-pointer"
+                title="Close Position"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            ) : null,
           },
         ]}
         data={filtered}
         pageSize={10}
+      />
+
+      {/* Confirm Close Dialog */}
+      <ConfirmDialog
+        isOpen={confirmClose.isOpen}
+        onClose={() => setConfirmClose(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmCloseAction}
+        title="Close Position"
+        message={`Are you sure you want to close the position for ${confirmClose.market} by ${confirmClose.agentName}? This will place a market order to exit the position.`}
+        confirmText="Close Position"
+        variant="warning"
       />
     </div>
   );

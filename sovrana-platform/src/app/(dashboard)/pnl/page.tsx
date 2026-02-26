@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { TrendingUp, Filter, DollarSign, Activity, BarChart3 } from 'lucide-react';
+import { TrendingUp, Filter, DollarSign, Activity, BarChart3, X, Download } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, BarChart, Bar,
 } from 'recharts';
 import StatsCard from '@/components/StatsCard';
 import DataTable from '@/components/DataTable';
+import { useToast } from '@/components/Toast';
 import { mockPnlSnapshots } from '@/lib/mock-data';
 import { formatUSD, getPnlColor } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -33,6 +34,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function PnlPage() {
   const [filterAgent, setFilterAgent] = useState<string>('all');
+  const { addToast } = useToast();
   const agentNames = [...new Set(mockPnlSnapshots.map((s) => s.agent_name))];
 
   const filtered = mockPnlSnapshots.filter((s) => {
@@ -70,12 +72,37 @@ export default function PnlPage() {
   const totalVolume = filtered.reduce((sum, s) => sum + s.total_volume, 0);
   const totalTrades = filtered.reduce((sum, s) => sum + s.trade_count, 0);
 
+  const handleExport = () => {
+    const csv = [
+      'Date,Agent,Realized PnL,Unrealized PnL,Total PnL,Volume,Trades',
+      ...filtered.map(s => `${s.snapshot_date},${s.agent_name},${s.realized_pnl},${s.unrealized_pnl},${s.total_pnl},${s.total_volume},${s.trade_count}`)
+    ].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pnl-report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    addToast('success', 'Export Complete', `PnL report with ${filtered.length} snapshots exported.`);
+  };
+
+  const handleClearFilter = () => {
+    setFilterAgent('all');
+    addToast('info', 'Filter Cleared', 'Showing all agents.');
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Profit & Loss</h1>
-        <p className="text-sm text-slate-500 mt-1">Performance analytics and PnL tracking</p>
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Profit & Loss</h1>
+          <p className="text-sm text-slate-500 mt-1">Performance analytics and PnL tracking</p>
+        </div>
+        <button onClick={handleExport} className="btn-secondary flex items-center gap-2 py-2 px-3.5">
+          <Download className="w-4 h-4" /> Export Report
+        </button>
       </div>
 
       {/* Stats */}
@@ -98,6 +125,11 @@ export default function PnlPage() {
             <option key={name} value={name}>{name}</option>
           ))}
         </select>
+        {filterAgent !== 'all' && (
+          <button onClick={handleClearFilter} className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+            <X className="w-3 h-3" /> Clear
+          </button>
+        )}
       </div>
 
       {/* Charts */}

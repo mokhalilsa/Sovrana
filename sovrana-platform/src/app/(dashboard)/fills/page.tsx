@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Receipt, Filter, ArrowUpRight, ArrowDownRight, DollarSign, Percent } from 'lucide-react';
+import { Receipt, Filter, ArrowUpRight, ArrowDownRight, DollarSign, Percent, X, Download } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import DataTable from '@/components/DataTable';
 import StatsCard from '@/components/StatsCard';
+import { useToast } from '@/components/Toast';
 import { mockFills } from '@/lib/mock-data';
 import { formatUSD } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -12,6 +13,7 @@ import { format, parseISO } from 'date-fns';
 export default function FillsPage() {
   const [filterAgent, setFilterAgent] = useState<string>('all');
   const [filterSide, setFilterSide] = useState<string>('all');
+  const { addToast } = useToast();
 
   const agentNames = [...new Set(mockFills.map((f) => f.agent_name))];
 
@@ -25,6 +27,27 @@ export default function FillsPage() {
   const totalFees = filtered.reduce((sum, f) => sum + f.fee_usdc, 0);
   const avgPrice = filtered.length > 0 ? filtered.reduce((sum, f) => sum + f.fill_price, 0) / filtered.length : 0;
 
+  const handleExport = () => {
+    const csv = [
+      'ID,Agent,Side,Market,Fill Price,Fill Size,Fee,Filled At',
+      ...filtered.map(f => `${f.id},${f.agent_name},${f.side},${f.condition_id},${f.fill_price},${f.fill_size_usdc},${f.fee_usdc},${f.filled_at}`)
+    ].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fills-export-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    addToast('success', 'Export Complete', `${filtered.length} fills exported to CSV.`);
+  };
+
+  const handleClearFilters = () => {
+    setFilterAgent('all');
+    setFilterSide('all');
+    addToast('info', 'Filters Cleared', 'All filters have been reset.');
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -33,6 +56,9 @@ export default function FillsPage() {
           <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Fills</h1>
           <p className="text-sm text-slate-500 mt-1">Executed trade fills across all agents</p>
         </div>
+        <button onClick={handleExport} className="btn-secondary flex items-center gap-2 py-2 px-3.5">
+          <Download className="w-4 h-4" /> Export CSV
+        </button>
       </div>
 
       {/* Stats */}
@@ -59,6 +85,11 @@ export default function FillsPage() {
           <option value="buy">Buy</option>
           <option value="sell">Sell</option>
         </select>
+        {(filterAgent !== 'all' || filterSide !== 'all') && (
+          <button onClick={handleClearFilters} className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+            <X className="w-3 h-3" /> Clear
+          </button>
+        )}
         <span className="text-xs text-slate-500 font-medium ml-auto">{filtered.length} fills</span>
       </div>
 
@@ -74,7 +105,7 @@ export default function FillsPage() {
                 </div>
                 <div>
                   <span className="text-[11px] text-slate-500 font-mono">{f.id}</span>
-                  <p className="text-[10px] text-slate-700 font-mono">{f.order_id}</p>
+                  <p className="text-[10px] text-slate-400 font-mono">{f.order_id}</p>
                 </div>
               </div>
             ),

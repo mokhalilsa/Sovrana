@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Signal as SignalIcon, Check, X, Filter, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Signal as SignalIcon, Check, X, Filter, ArrowUpRight, ArrowDownRight, CheckCircle, XCircle } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import DataTable from '@/components/DataTable';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { useToast } from '@/components/Toast';
 import { mockSignals } from '@/lib/mock-data';
 import { formatUSD } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -14,6 +16,18 @@ export default function SignalsPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterSide, setFilterSide] = useState<string>('all');
   const [filterAgent, setFilterAgent] = useState<string>('all');
+  const { addToast } = useToast();
+
+  // Confirm dialog
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    signalId: string;
+    action: 'approve' | 'reject';
+    agentName: string;
+  }>({ isOpen: false, signalId: '', action: 'approve', agentName: '' });
+
+  // Bulk actions
+  const [selectedSignals, setSelectedSignals] = useState<Set<string>>(new Set());
 
   const agentNames = [...new Set(signals.map((s) => s.agent_name))];
 
@@ -24,12 +38,52 @@ export default function SignalsPage() {
     return true;
   });
 
-  const approveSignal = (id: string) => {
-    setSignals(signals.map((s) => s.id === id ? { ...s, status: 'approved' as const } : s));
+  const handleApprove = (id: string, agentName: string) => {
+    setConfirmDialog({ isOpen: true, signalId: id, action: 'approve', agentName });
   };
 
-  const rejectSignal = (id: string) => {
-    setSignals(signals.map((s) => s.id === id ? { ...s, status: 'rejected' as const, rejection_reason: 'Manually rejected' } : s));
+  const handleReject = (id: string, agentName: string) => {
+    setConfirmDialog({ isOpen: true, signalId: id, action: 'reject', agentName });
+  };
+
+  const confirmAction = () => {
+    const { signalId, action, agentName } = confirmDialog;
+    if (action === 'approve') {
+      setSignals(prev => prev.map(s => s.id === signalId ? { ...s, status: 'approved' as const } : s));
+      addToast('success', 'Signal Approved', `Signal from ${agentName} has been approved for execution.`);
+    } else {
+      setSignals(prev => prev.map(s => s.id === signalId ? { ...s, status: 'rejected' as const, rejection_reason: 'Manually rejected by operator' } : s));
+      addToast('warning', 'Signal Rejected', `Signal from ${agentName} has been rejected.`);
+    }
+  };
+
+  const handleBulkApprove = () => {
+    const pendingSelected = [...selectedSignals].filter(id => signals.find(s => s.id === id)?.status === 'pending');
+    if (pendingSelected.length === 0) {
+      addToast('warning', 'No Pending Signals', 'Select pending signals to approve.');
+      return;
+    }
+    setSignals(prev => prev.map(s => pendingSelected.includes(s.id) ? { ...s, status: 'approved' as const } : s));
+    addToast('success', 'Bulk Approved', `${pendingSelected.length} signals have been approved.`);
+    setSelectedSignals(new Set());
+  };
+
+  const handleBulkReject = () => {
+    const pendingSelected = [...selectedSignals].filter(id => signals.find(s => s.id === id)?.status === 'pending');
+    if (pendingSelected.length === 0) {
+      addToast('warning', 'No Pending Signals', 'Select pending signals to reject.');
+      return;
+    }
+    setSignals(prev => prev.map(s => pendingSelected.includes(s.id) ? { ...s, status: 'rejected' as const, rejection_reason: 'Bulk rejected by operator' } : s));
+    addToast('warning', 'Bulk Rejected', `${pendingSelected.length} signals have been rejected.`);
+    setSelectedSignals(new Set());
+  };
+
+  const handleClearFilters = () => {
+    setFilterStatus('all');
+    setFilterSide('all');
+    setFilterAgent('all');
+    addToast('info', 'Filters Cleared', 'All filters have been reset.');
   };
 
   const pendingCount = signals.filter((s) => s.status === 'pending').length;
@@ -42,15 +96,28 @@ export default function SignalsPage() {
           <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Signals</h1>
           <p className="text-sm text-slate-500 mt-1">AI-generated trading signals from all agents</p>
         </div>
-        {pendingCount > 0 && (
-          <span className="badge-warning flex items-center gap-1.5">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-400" />
+        <div className="flex items-center gap-3">
+          {selectedSignals.size > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 font-medium">{selectedSignals.size} selected</span>
+              <button onClick={handleBulkApprove} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-600 hover:bg-emerald-100 ring-1 ring-emerald-200 transition-all">
+                <CheckCircle className="w-3.5 h-3.5" /> Approve All
+              </button>
+              <button onClick={handleBulkReject} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 ring-1 ring-red-200 transition-all">
+                <XCircle className="w-3.5 h-3.5" /> Reject All
+              </button>
+            </div>
+          )}
+          {pendingCount > 0 && (
+            <span className="badge-warning flex items-center gap-1.5">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-400" />
+              </span>
+              {pendingCount} Pending
             </span>
-            {pendingCount} Pending
-          </span>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -78,6 +145,11 @@ export default function SignalsPage() {
             <option key={name} value={name}>{name}</option>
           ))}
         </select>
+        {(filterStatus !== 'all' || filterSide !== 'all' || filterAgent !== 'all') && (
+          <button onClick={handleClearFilters} className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+            <X className="w-3 h-3" /> Clear
+          </button>
+        )}
         <span className="text-xs text-slate-500 font-medium ml-auto">{filtered.length} signals</span>
       </div>
 
@@ -157,25 +229,40 @@ export default function SignalsPage() {
             render: (s) => s.status === 'pending' ? (
               <div className="flex items-center gap-1.5">
                 <button
-                  onClick={() => approveSignal(s.id)}
-                  className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-500/20 transition-all ring-1 ring-emerald-200"
+                  onClick={() => handleApprove(s.id, s.agent_name)}
+                  className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all ring-1 ring-emerald-200 cursor-pointer"
                   title="Approve"
                 >
                   <Check className="w-3.5 h-3.5" />
                 </button>
                 <button
-                  onClick={() => rejectSignal(s.id)}
-                  className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-500/20 transition-all ring-1 ring-red-200"
+                  onClick={() => handleReject(s.id, s.agent_name)}
+                  className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all ring-1 ring-red-200 cursor-pointer"
                   title="Reject"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-            ) : <span className="text-xs text-slate-700">—</span>,
+            ) : <span className="text-xs text-slate-400">—</span>,
           },
         ]}
         data={filtered}
         pageSize={10}
+      />
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmAction}
+        title={confirmDialog.action === 'approve' ? 'Approve Signal' : 'Reject Signal'}
+        message={
+          confirmDialog.action === 'approve'
+            ? `Approve the trading signal from ${confirmDialog.agentName}? This will queue it for execution.`
+            : `Reject the trading signal from ${confirmDialog.agentName}? This action cannot be undone.`
+        }
+        confirmText={confirmDialog.action === 'approve' ? 'Approve' : 'Reject'}
+        variant={confirmDialog.action === 'approve' ? 'success' : 'danger'}
       />
     </div>
   );

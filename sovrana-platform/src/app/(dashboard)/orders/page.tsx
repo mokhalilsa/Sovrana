@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { ShoppingCart, Filter, XCircle, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { ShoppingCart, Filter, XCircle, ArrowUpRight, ArrowDownRight, X } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import DataTable from '@/components/DataTable';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { useToast } from '@/components/Toast';
 import { mockOrders } from '@/lib/mock-data';
 import { formatUSD } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -14,6 +16,11 @@ export default function OrdersPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterSide, setFilterSide] = useState<string>('all');
   const [filterAgent, setFilterAgent] = useState<string>('all');
+  const { addToast } = useToast();
+
+  const [confirmCancel, setConfirmCancel] = useState<{ isOpen: boolean; orderId: string; agentName: string }>({
+    isOpen: false, orderId: '', agentName: '',
+  });
 
   const agentNames = [...new Set(orders.map((o) => o.agent_name))];
 
@@ -24,8 +31,20 @@ export default function OrdersPage() {
     return true;
   });
 
-  const cancelOrder = (id: string) => {
-    setOrders(orders.map((o) => o.id === id ? { ...o, status: 'cancelled' as const } : o));
+  const handleCancelOrder = (id: string, agentName: string) => {
+    setConfirmCancel({ isOpen: true, orderId: id, agentName });
+  };
+
+  const confirmCancelAction = () => {
+    setOrders(prev => prev.map(o => o.id === confirmCancel.orderId ? { ...o, status: 'cancelled' as const } : o));
+    addToast('warning', 'Order Cancelled', `Order from ${confirmCancel.agentName} has been cancelled.`);
+  };
+
+  const handleClearFilters = () => {
+    setFilterStatus('all');
+    setFilterSide('all');
+    setFilterAgent('all');
+    addToast('info', 'Filters Cleared', 'All filters have been reset.');
   };
 
   const activeCount = orders.filter((o) => o.status === 'placed' || o.status === 'pending').length;
@@ -72,6 +91,11 @@ export default function OrdersPage() {
             <option key={name} value={name}>{name}</option>
           ))}
         </select>
+        {(filterStatus !== 'all' || filterSide !== 'all' || filterAgent !== 'all') && (
+          <button onClick={handleClearFilters} className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+            <X className="w-3 h-3" /> Clear
+          </button>
+        )}
         <span className="text-xs text-slate-500 font-medium ml-auto">{filtered.length} orders</span>
       </div>
 
@@ -88,7 +112,7 @@ export default function OrdersPage() {
                 <div>
                   <span className="text-[11px] text-slate-500 font-mono">{o.id}</span>
                   {o.polymarket_order_id && (
-                    <p className="text-[10px] text-slate-700 font-mono">{o.polymarket_order_id}</p>
+                    <p className="text-[10px] text-slate-400 font-mono">{o.polymarket_order_id}</p>
                   )}
                 </div>
               </div>
@@ -104,7 +128,7 @@ export default function OrdersPage() {
           },
           {
             key: 'type', header: 'Type',
-            render: (o) => <span className="text-sm text-slate-400 capitalize font-medium">{o.order_type}</span>,
+            render: (o) => <span className="text-sm text-slate-500 capitalize font-medium">{o.order_type}</span>,
           },
           {
             key: 'market', header: 'Market',
@@ -141,8 +165,8 @@ export default function OrdersPage() {
             key: 'actions', header: '',
             render: (o) => (o.status === 'placed' || o.status === 'pending' || o.status === 'partial') ? (
               <button
-                onClick={() => cancelOrder(o.id)}
-                className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-500/20 transition-all ring-1 ring-red-200"
+                onClick={() => handleCancelOrder(o.id, o.agent_name)}
+                className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all ring-1 ring-red-200 cursor-pointer"
                 title="Cancel Order"
               >
                 <XCircle className="w-3.5 h-3.5" />
@@ -152,6 +176,17 @@ export default function OrdersPage() {
         ]}
         data={filtered}
         pageSize={10}
+      />
+
+      {/* Confirm Cancel Dialog */}
+      <ConfirmDialog
+        isOpen={confirmCancel.isOpen}
+        onClose={() => setConfirmCancel(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmCancelAction}
+        title="Cancel Order"
+        message={`Are you sure you want to cancel this order from ${confirmCancel.agentName}? This will attempt to cancel the order on Polymarket.`}
+        confirmText="Cancel Order"
+        variant="danger"
       />
     </div>
   );
