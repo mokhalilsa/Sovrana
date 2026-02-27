@@ -61,13 +61,9 @@ function getClobClient(): ClobClient | null {
   const creds = getApiCredentials();
   if (!creds.key || !creds.secret || !creds.passphrase) return null;
 
-  // Use StaticJsonRpcProvider which doesn't need to detect network
-  // This avoids the "could not detect network" error on Vercel
-  const provider = new ethers.providers.StaticJsonRpcProvider(
-    'https://polygon-bor-rpc.publicnode.com',
-    { name: 'polygon', chainId: 137 }
-  );
-  const wallet = new ethers.Wallet(pk, provider);
+  // Use plain wallet without provider - _signTypedData and getAddress() work
+  // without a provider. Adding a provider causes ENS resolution errors on Polygon.
+  const wallet = new ethers.Wallet(pk);
   const funder = getFunderAddress();
 
   // Set HTTPS_PROXY env var for axios (used by the CLOB client internally)
