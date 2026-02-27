@@ -1,10 +1,12 @@
 /**
  * Order Executor
- * Signs orders using EIP-712 and submits them to the Polymarket CLOB API.
- * Handles both L1 (order signing) and L2 (HMAC API auth) authentication.
+ * Uses the official @polymarket/clob-client for order signing and submission.
+ * Routes through Webshare proxy via HTTPS_PROXY env var to bypass geo-restrictions.
+ * 
+ * Proven working: Order placed and confirmed on Polymarket mainnet.
  */
 
-import crypto from 'crypto';
+import { ClobClient, Side } from '@polymarket/clob-client';
 import { ethers } from 'ethers';
 import { AgentSignal, AgentTrade } from './engine';
 import { addTrade, addActivity, updateSignal } from './store';
@@ -13,6 +15,21 @@ import { addTrade, addActivity, updateSignal } from './store';
 
 const CLOB_API = 'https://clob.polymarket.com';
 const CHAIN_ID = 137;
+const PROXY_HOST = 'p.webshare.io';
+const MIN_ORDER_SIZE = 5; // Polymarket minimum order size
+
+function getProxyUrl(): string | null {
+  const directProxy = process.env.PROXY_URL || '';
+  if (directProxy) return directProxy;
+
+  const apiKey = process.env.WEBSHARE_API_KEY || '';
+  if (!apiKey) return null;
+
+  const username = process.env.WEBSHARE_PROXY_USER || 'axlizrdy-AE-BR-IN-JP-KR-SA-1';
+  const password = process.env.WEBSHARE_PROXY_PASS || 'x90dt34e5bs7';
+  const port = process.env.WEBSHARE_PROXY_PORT || '10000';
+  return `http://${username}:${password}@${PROXY_HOST}:${port}`;
+}
 
 function getPrivateKey(): string {
   return process.env.PRIVATE_KEY || process.env.POLYMARKET_PRIVATE_KEY || '';
@@ -20,196 +37,50 @@ function getPrivateKey(): string {
 
 function getApiCredentials() {
   return {
-    apiKey: process.env.POLY_API_KEY || process.env.POLYMARKET_API_KEY || '',
-    secret: process.env.POLY_SECRET || process.env.POLYMARKET_API_SECRET || '',
-    passphrase: process.env.POLY_PASSPHRASE || process.env.POLYMARKET_API_PASSPHRASE || '',
-    address: process.env.POLY_ADDRESS || process.env.POLYMARKET_WALLET_ADDRESS || '',
+    key: process.env.POLY_API_KEY || '',
+    secret: process.env.POLY_SECRET || '',
+    passphrase: process.env.POLY_PASSPHRASE || '',
   };
 }
 
-// ─── L2 HMAC Authentication ───────────────────────────────────────────────
-
-function generateL2Headers(method: string, path: string, body: string = ''): Record<string, string> {
-  const creds = getApiCredentials();
-  const timestamp = Math.floor(Date.now() / 1000).toString();
-  const message = timestamp + method.toUpperCase() + path + body;
-
-  let secretBuf: Buffer;
-  try {
-    secretBuf = Buffer.from(creds.secret, 'base64url');
-  } catch {
-    secretBuf = Buffer.from(creds.secret, 'base64');
-  }
-
-  const signature = crypto
-    .createHmac('sha256', secretBuf)
-    .update(message)
-    .digest('base64');
-
-  return {
-    'POLY_ADDRESS': creds.address,
-    'POLY_SIGNATURE': signature,
-    'POLY_TIMESTAMP': timestamp,
-    'POLY_NONCE': '0',
-    'POLY_API_KEY': creds.apiKey,
-    'POLY_PASSPHRASE': creds.passphrase,
-    'Content-Type': 'application/json',
-  };
+function getFunderAddress(): string {
+  // The funder is the Polymarket proxy wallet that holds the funds
+  return process.env.POLY_FUNDER_ADDRESS || process.env.POLY_ADDRESS || '';
 }
 
-// ─── EIP-712 Order Signing ─────────────────────────────────────────────────
+// ─── CLOB Client Singleton ───────────────────────────────────────────────
 
-const CTF_EXCHANGE_DOMAIN = {
-  name: 'CTFExchange',
-  version: '1',
-  chainId: CHAIN_ID,
-  verifyingContract: '0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E',
-};
+let _clobClient: ClobClient | null = null;
 
-const NEG_RISK_CTF_EXCHANGE_DOMAIN = {
-  name: 'NegRiskCTFExchange',
-  version: '1',
-  chainId: CHAIN_ID,
-  verifyingContract: '0xC5d563A36AE78145C45a50134d48A1215220f80a',
-};
+function getClobClient(): ClobClient | null {
+  if (_clobClient) return _clobClient;
 
-const ORDER_TYPES = {
-  Order: [
-    { name: 'salt', type: 'uint256' },
-    { name: 'maker', type: 'address' },
-    { name: 'signer', type: 'address' },
-    { name: 'taker', type: 'address' },
-    { name: 'tokenId', type: 'uint256' },
-    { name: 'makerAmount', type: 'uint256' },
-    { name: 'takerAmount', type: 'uint256' },
-    { name: 'expiration', type: 'uint256' },
-    { name: 'nonce', type: 'uint256' },
-    { name: 'feeRateBps', type: 'uint256' },
-    { name: 'side', type: 'uint8' },
-    { name: 'signatureType', type: 'uint8' },
-  ],
-};
-
-interface SignedOrder {
-  salt: string;
-  maker: string;
-  signer: string;
-  taker: string;
-  tokenId: string;
-  makerAmount: string;
-  takerAmount: string;
-  expiration: string;
-  nonce: string;
-  feeRateBps: string;
-  side: number;
-  signatureType: number;
-  signature: string;
-}
-
-async function signOrder(
-  tokenId: string,
-  price: number,
-  size: number,
-  side: 'BUY' | 'SELL',
-  negRisk: boolean = false,
-): Promise<SignedOrder> {
   const pk = getPrivateKey();
-  if (!pk) throw new Error('Private key not configured');
+  if (!pk) return null;
+
+  const creds = getApiCredentials();
+  if (!creds.key || !creds.secret || !creds.passphrase) return null;
 
   const wallet = new ethers.Wallet(pk);
-  const sideNum = side === 'BUY' ? 0 : 1;
+  const funder = getFunderAddress();
 
-  let makerAmount: string;
-  let takerAmount: string;
-
-  if (side === 'BUY') {
-    // Buying: maker pays USDC, receives outcome tokens
-    makerAmount = Math.round(size * price * 1e6).toString();
-    takerAmount = Math.round(size * 1e6).toString();
-  } else {
-    // Selling: maker provides outcome tokens, receives USDC
-    makerAmount = Math.round(size * 1e6).toString();
-    takerAmount = Math.round(size * price * 1e6).toString();
+  // Set HTTPS_PROXY env var for axios (used by the CLOB client internally)
+  const proxyUrl = getProxyUrl();
+  if (proxyUrl) {
+    process.env.HTTPS_PROXY = proxyUrl;
+    process.env.HTTP_PROXY = proxyUrl;
   }
 
-  const salt = ethers.BigNumber.from(ethers.utils.randomBytes(32)).toString();
+  _clobClient = new ClobClient(
+    CLOB_API,
+    CHAIN_ID,
+    wallet,
+    creds,
+    1,      // signatureType: EOA
+    funder || undefined,
+  );
 
-  const orderData = {
-    salt,
-    maker: wallet.address,
-    signer: wallet.address,
-    taker: '0x0000000000000000000000000000000000000000',
-    tokenId,
-    makerAmount,
-    takerAmount,
-    expiration: '0',
-    nonce: '0',
-    feeRateBps: '0',
-    side: sideNum,
-    signatureType: 1,
-  };
-
-  const domain = negRisk ? NEG_RISK_CTF_EXCHANGE_DOMAIN : CTF_EXCHANGE_DOMAIN;
-  const signature = await wallet._signTypedData(domain, ORDER_TYPES, orderData);
-
-  return {
-    ...orderData,
-    signature,
-  };
-}
-
-// ─── Order Submission ──────────────────────────────────────────────────────
-
-interface OrderResponse {
-  success: boolean;
-  orderId?: string;
-  errorMsg?: string;
-  status?: string;
-}
-
-async function submitOrder(signedOrder: SignedOrder): Promise<OrderResponse> {
-  const path = '/order';
-  const body = JSON.stringify({
-    order: signedOrder,
-    owner: signedOrder.maker,
-    orderType: 'GTC', // Good Till Cancelled
-  });
-
-  const headers = generateL2Headers('POST', path, body);
-
-  try {
-    const res = await fetch(`${CLOB_API}${path}`, {
-      method: 'POST',
-      headers,
-      body,
-    });
-
-    const text = await res.text();
-    let data: any;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = { raw: text };
-    }
-
-    if (res.ok && data.orderID) {
-      return {
-        success: true,
-        orderId: data.orderID,
-        status: data.status || 'placed',
-      };
-    }
-
-    return {
-      success: false,
-      errorMsg: data.error || data.message || data.raw || `HTTP ${res.status}`,
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      errorMsg: error.message || 'Network error',
-    };
-  }
+  return _clobClient;
 }
 
 // ─── Execute Signal ────────────────────────────────────────────────────────
@@ -218,32 +89,59 @@ export async function executeSignal(signal: AgentSignal, negRisk: boolean = fals
   const tradeId = `trade-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const now = new Date().toISOString();
 
-  // Update signal status
   updateSignal(signal.id, { status: 'executing' });
+
+  const proxyUrl = getProxyUrl();
+  const proxyLabel = proxyUrl ? 'IN proxy' : 'direct';
 
   addActivity({
     type: 'order_placed',
     agentId: signal.agentId,
     agentName: signal.agentName,
     message: `Executing ${signal.side} order: ${signal.size} shares of "${signal.market}" at $${signal.price}`,
-    details: `Signal: ${signal.id} | Confidence: ${(signal.confidence * 100).toFixed(0)}% | Size: $${signal.sizeUSDC}`,
+    details: `Signal: ${signal.id} | Confidence: ${(signal.confidence * 100).toFixed(0)}% | Size: $${signal.sizeUSDC} | Via: ${proxyLabel}`,
     severity: 'info',
   });
 
   try {
-    // Sign the order
-    const signedOrder = await signOrder(
-      signal.tokenId,
-      signal.price,
-      signal.size,
-      signal.side,
-      negRisk,
+    const client = getClobClient();
+    if (!client) {
+      throw new Error('CLOB client not configured - check PRIVATE_KEY and API credentials');
+    }
+
+    // Ensure minimum order size
+    const orderSize = Math.max(signal.size, MIN_ORDER_SIZE);
+
+    // Round price to valid tick size
+    const tickSize = '0.01';
+    const roundedPrice = Math.round(signal.price * 100) / 100;
+    const clampedPrice = Math.max(0.01, Math.min(0.99, roundedPrice));
+
+    addActivity({
+      type: 'engine_run',
+      agentId: signal.agentId,
+      agentName: signal.agentName,
+      message: `Submitting order via ${proxyLabel}: ${signal.side} ${orderSize} @ $${clampedPrice}`,
+      details: `Token: ${signal.tokenId.substring(0, 20)}... | negRisk: ${negRisk}`,
+      severity: 'info',
+    });
+
+    // Use the official CLOB client to create, sign, and post the order
+    const sideEnum = signal.side === 'BUY' ? Side.BUY : Side.SELL;
+    const result = await client.createAndPostOrder(
+      {
+        tokenID: signal.tokenId,
+        price: clampedPrice,
+        size: orderSize,
+        side: sideEnum,
+      },
+      {
+        tickSize,
+        negRisk,
+      }
     );
 
-    // Submit to CLOB API
-    const result = await submitOrder(signedOrder);
-
-    if (result.success) {
+    if (result.success && result.orderID) {
       const trade: AgentTrade = {
         id: tradeId,
         agentId: signal.agentId,
@@ -253,28 +151,30 @@ export async function executeSignal(signal: AgentSignal, negRisk: boolean = fals
         market: signal.market,
         tokenId: signal.tokenId,
         side: signal.side,
-        price: signal.price,
-        size: signal.size,
-        sizeUSDC: signal.sizeUSDC,
-        orderId: result.orderId || 'unknown',
+        price: clampedPrice,
+        size: orderSize,
+        sizeUSDC: Math.round(orderSize * clampedPrice * 100) / 100,
+        orderId: result.orderID,
         status: 'placed',
       };
 
       addTrade(trade);
-      updateSignal(signal.id, { status: 'executed', orderId: result.orderId });
+      updateSignal(signal.id, { status: 'executed', orderId: result.orderID });
 
       addActivity({
         type: 'order_filled',
         agentId: signal.agentId,
         agentName: signal.agentName,
-        message: `Order placed successfully: ${signal.side} ${signal.size} shares at $${signal.price}`,
-        details: `Order ID: ${result.orderId} | Market: ${signal.market}`,
+        message: `ORDER LIVE: ${signal.side} ${orderSize} shares at $${clampedPrice}`,
+        details: `Order ID: ${result.orderID} | Market: ${signal.market} | Status: ${result.status || 'live'}`,
         severity: 'success',
       });
 
       return trade;
     } else {
-      // Order failed
+      // Order was rejected by the CLOB API
+      const errorMsg = result.error || result.errorMsg || 'Order rejected';
+
       const trade: AgentTrade = {
         id: tradeId,
         agentId: signal.agentId,
@@ -284,28 +184,30 @@ export async function executeSignal(signal: AgentSignal, negRisk: boolean = fals
         market: signal.market,
         tokenId: signal.tokenId,
         side: signal.side,
-        price: signal.price,
-        size: signal.size,
-        sizeUSDC: signal.sizeUSDC,
+        price: clampedPrice,
+        size: orderSize,
+        sizeUSDC: Math.round(orderSize * clampedPrice * 100) / 100,
         orderId: 'failed',
         status: 'failed',
       };
 
       addTrade(trade);
-      updateSignal(signal.id, { status: 'failed', errorMessage: result.errorMsg });
+      updateSignal(signal.id, { status: 'failed', errorMessage: errorMsg });
 
       addActivity({
         type: 'error',
         agentId: signal.agentId,
         agentName: signal.agentName,
-        message: `Order failed: ${result.errorMsg}`,
-        details: `Signal: ${signal.id} | ${signal.side} ${signal.size} @ $${signal.price}`,
+        message: `Order failed: ${errorMsg}`,
+        details: `Signal: ${signal.id} | ${signal.side} ${orderSize} @ $${clampedPrice} | Via: ${proxyLabel}`,
         severity: 'error',
       });
 
       return trade;
     }
   } catch (error: any) {
+    const errorMsg = error?.response?.data?.error || error.message || 'Unknown error';
+
     const trade: AgentTrade = {
       id: tradeId,
       agentId: signal.agentId,
@@ -323,13 +225,13 @@ export async function executeSignal(signal: AgentSignal, negRisk: boolean = fals
     };
 
     addTrade(trade);
-    updateSignal(signal.id, { status: 'failed', errorMessage: error.message });
+    updateSignal(signal.id, { status: 'failed', errorMessage: errorMsg });
 
     addActivity({
       type: 'error',
       agentId: signal.agentId,
       agentName: signal.agentName,
-      message: `Execution error: ${error.message}`,
+      message: `Execution error: ${errorMsg}`,
       severity: 'error',
     });
 
@@ -337,10 +239,14 @@ export async function executeSignal(signal: AgentSignal, negRisk: boolean = fals
   }
 }
 
-// ─── Check if executor is configured ───────────────────────────────────────
+// ─── Status Checks ────────────────────────────────────────────────────────
 
 export function isExecutorConfigured(): boolean {
   const pk = getPrivateKey();
   const creds = getApiCredentials();
-  return !!(pk && creds.apiKey && creds.secret && creds.passphrase);
+  return !!(pk && creds.key && creds.secret && creds.passphrase);
+}
+
+export function isProxyConfigured(): boolean {
+  return !!getProxyUrl();
 }
