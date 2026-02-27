@@ -61,7 +61,9 @@ function getClobClient(): ClobClient | null {
   const creds = getApiCredentials();
   if (!creds.key || !creds.secret || !creds.passphrase) return null;
 
-  const wallet = new ethers.Wallet(pk);
+  // Connect wallet to Polygon provider to avoid ENS resolution errors
+  const provider = new ethers.providers.JsonRpcProvider('https://polygon-rpc.com', 137);
+  const wallet = new ethers.Wallet(pk, provider);
   const funder = getFunderAddress();
 
   // Set HTTPS_PROXY env var for axios (used by the CLOB client internally)
