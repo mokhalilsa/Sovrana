@@ -61,9 +61,23 @@ function getClobClient(): ClobClient | null {
   const creds = getApiCredentials();
   if (!creds.key || !creds.secret || !creds.passphrase) return null;
 
-  // Use plain wallet without provider - _signTypedData and getAddress() work
-  // without a provider. Adding a provider causes ENS resolution errors on Polygon.
-  const wallet = new ethers.Wallet(pk);
+  // Create a custom provider that overrides ENS resolution to avoid errors.
+  // ethers v5 _signTypedData tries to resolve addresses via ENS.
+  // Without a provider: "cannot resolve ENS names without a provider"
+  // With Polygon provider: "network does not support ENS"
+  // Solution: provider that returns addresses directly without ENS lookup.
+  class NoEnsProvider extends ethers.providers.StaticJsonRpcProvider {
+    async resolveName(name: string): Promise<string> {
+      // If it's already an address, return it directly
+      if (ethers.utils.isAddress(name)) return name;
+      return name; // Don't try ENS resolution
+    }
+  }
+  const provider = new NoEnsProvider(
+    'https://polygon-bor-rpc.publicnode.com',
+    { name: 'polygon', chainId: 137 }
+  );
+  const wallet = new ethers.Wallet(pk, provider);
   const funder = getFunderAddress();
 
   // Set HTTPS_PROXY env var for axios (used by the CLOB client internally)
