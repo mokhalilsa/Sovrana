@@ -1,50 +1,104 @@
 'use client';
 
-import { useState } from 'react';
-import { Receipt, Filter, ArrowUpRight, ArrowDownRight, DollarSign, Percent, X, Download } from 'lucide-react';
-import StatusBadge from '@/components/StatusBadge';
-import DataTable from '@/components/DataTable';
-import StatsCard from '@/components/StatsCard';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  ArrowUpRight, ArrowDownRight, Download, Filter, Loader2,
+  RefreshCw, ExternalLink, Wifi, WifiOff, X,
+} from 'lucide-react';
 import { useToast } from '@/components/Toast';
-import { mockFills } from '@/lib/mock-data';
 import { formatUSD } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
+
+interface Trade {
+  id: string;
+  market: string;
+  asset_id: string;
+  side: string;
+  size: string;
+  price: string;
+  status: string;
+  outcome: string;
+  fee_rate_bps: string;
+  match_time: string;
+  transaction_hash: string;
+  trader_side: string;
+  maker_address: string;
+}
 
 export default function FillsPage() {
-  const [filterAgent, setFilterAgent] = useState<string>('all');
-  const [filterSide, setFilterSide] = useState<string>('all');
   const { addToast } = useToast();
+  const [trades, setTrades] = useState<Trade[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [connected, setConnected] = useState(false);
+  const [sideFilter, setSideFilter] = useState<string>('all');
+  const [refreshing, setRefreshing] = useState(false);
 
-  const agentNames = [...new Set(mockFills.map((f) => f.agent_name))];
+  const fetchTrades = useCallback(async () => {
+    try {
+      const res = await fetch('/api/portfolio/trades');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.trades) {
+          setTrades(data.trades);
+          setConnected(true);
+        }
+      }
+    } catch {
+      setConnected(false);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const filtered = mockFills.filter((f) => {
-    if (filterAgent !== 'all' && f.agent_name !== filterAgent) return false;
-    if (filterSide !== 'all' && f.side !== filterSide) return false;
+  useEffect(() => {
+    fetchTrades();
+    const interval = setInterval(fetchTrades, 30000);
+    return () => clearInterval(interval);
+  }, [fetchTrades]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchTrades();
+    setRefreshing(false);
+    addToast('success', 'Fills Refreshed', 'Trade data updated from Polymarket.');
+  };
+
+  const filtered = trades.filter(t => {
+    if (sideFilter !== 'all' && t.side !== sideFilter) return false;
     return true;
   });
 
-  const totalVolume = filtered.reduce((sum, f) => sum + f.fill_size_usdc, 0);
-  const totalFees = filtered.reduce((sum, f) => sum + f.fee_usdc, 0);
-  const avgPrice = filtered.length > 0 ? filtered.reduce((sum, f) => sum + f.fill_price, 0) / filtered.length : 0;
+  const totalVolume = filtered.reduce((sum, t) => sum + parseFloat(t.size || '0') * parseFloat(t.price || '0'), 0);
+  const totalFees = filtered.reduce((sum, t) => {
+    const vol = parseFloat(t.size || '0') * parseFloat(t.price || '0');
+    return sum + vol * parseFloat(t.fee_rate_bps || '0') / 10000;
+  }, 0);
+  const avgPrice = filtered.length > 0
+    ? filtered.reduce((sum, t) => sum + parseFloat(t.price || '0'), 0) / filtered.length
+    : 0;
 
   const handleExport = () => {
     const csv = [
-      'ID,Agent,Side,Market,Fill Price,Fill Size,Fee,Filled At',
-      ...filtered.map(f => `${f.id},${f.agent_name},${f.side},${f.condition_id},${f.fill_price},${f.fill_size_usdc},${f.fee_usdc},${f.filled_at}`)
+      'ID,Side,Outcome,Size,Price,Volume,Status,Trader Side,Match Time,Tx Hash',
+      ...filtered.map(t => {
+        const vol = parseFloat(t.size || '0') * parseFloat(t.price || '0');
+        const matchTime = parseInt(t.match_time || '0');
+        const timeStr = matchTime > 0 ? new Date(matchTime * 1000).toISOString() : '';
+        return `${t.id},${t.side},${t.outcome},${t.size},${t.price},${vol.toFixed(2)},${t.status},${t.trader_side},${timeStr},${t.transaction_hash}`;
+      }),
     ].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `fills-export-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.download = `sovrana-fills-${format(new Date(), 'yyyy-MM-dd')}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    addToast('success', 'Export Complete', `${filtered.length} fills exported to CSV.`);
+    addToast('success', 'CSV Exported', `${filtered.length} fills exported.`);
   };
 
   const handleClearFilters = () => {
-    setFilterAgent('all');
-    setFilterSide('all');
+    setSideFilter('all');
     addToast('info', 'Filters Cleared', 'All filters have been reset.');
   };
 
@@ -53,99 +107,150 @@ export default function FillsPage() {
       {/* Header */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Fills</h1>
-          <p className="text-sm text-slate-500 mt-1">Executed trade fills across all agents</p>
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Fills</h1>
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${connected ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+              {connected ? <><Wifi className="w-3 h-3 mr-1" /> LIVE</> : <><WifiOff className="w-3 h-3 mr-1" /> OFFLINE</>}
+            </span>
+          </div>
+          <p className="text-sm text-slate-500">Real executed trades from your Polymarket wallet</p>
         </div>
-        <button onClick={handleExport} className="btn-secondary flex items-center gap-2 py-2 px-3.5">
-          <Download className="w-4 h-4" /> Export CSV
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={handleRefresh} disabled={refreshing} className="btn-secondary flex items-center gap-2 py-2 px-3.5">
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <button onClick={handleExport} className="btn-primary flex items-center gap-2 py-2 px-3.5">
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <StatsCard title="Total Volume" value={formatUSD(totalVolume)} icon={DollarSign} color="blue" subtitle={`${filtered.length} fills`} />
-        <StatsCard title="Total Fees" value={formatUSD(totalFees)} icon={Percent} color="red" subtitle="Across all fills" />
-        <StatsCard title="Avg Fill Price" value={`$${avgPrice.toFixed(4)}`} icon={Receipt} color="purple" subtitle="Weighted average" />
+        <div className="card p-5">
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Total Volume</p>
+          <p className="text-2xl font-extrabold text-slate-800">{formatUSD(totalVolume)}</p>
+          <p className="text-xs text-slate-400 mt-1">{filtered.length} fills</p>
+        </div>
+        <div className="card p-5">
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Total Fees</p>
+          <p className="text-2xl font-extrabold text-slate-800">{formatUSD(totalFees)}</p>
+          <p className="text-xs text-slate-400 mt-1">Across all fills</p>
+        </div>
+        <div className="card p-5">
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Avg Fill Price</p>
+          <p className="text-2xl font-extrabold text-slate-800">${avgPrice.toFixed(4)}</p>
+          <p className="text-xs text-slate-400 mt-1">Weighted average</p>
+        </div>
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2 text-slate-500">
-          <Filter className="w-4 h-4" />
-          <span className="text-xs font-semibold uppercase tracking-wider">Filters</span>
-        </div>
-        <select value={filterAgent} onChange={(e) => setFilterAgent(e.target.value)} className="input-dark text-sm">
-          <option value="all">All Agents</option>
-          {agentNames.map((name) => (
-            <option key={name} value={name}>{name}</option>
-          ))}
-        </select>
-        <select value={filterSide} onChange={(e) => setFilterSide(e.target.value)} className="input-dark text-sm">
+      <div className="flex items-center gap-4">
+        <Filter className="w-4 h-4 text-slate-400" />
+        <select
+          value={sideFilter}
+          onChange={(e) => setSideFilter(e.target.value)}
+          className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
           <option value="all">All Sides</option>
-          <option value="buy">Buy</option>
-          <option value="sell">Sell</option>
+          <option value="BUY">Buy Only</option>
+          <option value="SELL">Sell Only</option>
         </select>
-        {(filterAgent !== 'all' || filterSide !== 'all') && (
+        {sideFilter !== 'all' && (
           <button onClick={handleClearFilters} className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
             <X className="w-3 h-3" /> Clear
           </button>
         )}
-        <span className="text-xs text-slate-500 font-medium ml-auto">{filtered.length} fills</span>
+        <span className="text-xs text-slate-400 ml-auto">{filtered.length} fills</span>
       </div>
 
-      {/* Fills Table */}
-      <DataTable
-        columns={[
-          {
-            key: 'id', header: 'Fill',
-            render: (f) => (
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${f.side === 'buy' ? 'bg-emerald-50' : 'bg-red-50'}`}>
-                  {f.side === 'buy' ? <ArrowUpRight className="w-4 h-4 text-emerald-600" /> : <ArrowDownRight className="w-4 h-4 text-red-600" />}
-                </div>
-                <div>
-                  <span className="text-[11px] text-slate-500 font-mono">{f.id}</span>
-                  <p className="text-[10px] text-slate-400 font-mono">{f.order_id}</p>
-                </div>
-              </div>
-            ),
-          },
-          {
-            key: 'agent', header: 'Agent',
-            render: (f) => <p className="text-sm font-semibold text-slate-700">{f.agent_name}</p>,
-          },
-          {
-            key: 'side', header: 'Side',
-            render: (f) => <StatusBadge status={f.side} />,
-          },
-          {
-            key: 'market', header: 'Market',
-            render: (f) => <span className="text-sm text-slate-400 font-mono">{f.condition_id}</span>,
-          },
-          {
-            key: 'price', header: 'Fill Price',
-            render: (f) => <span className="font-mono text-sm font-semibold text-slate-800">${f.fill_price.toFixed(4)}</span>,
-          },
-          {
-            key: 'size', header: 'Fill Size',
-            render: (f) => <span className="font-mono text-sm font-semibold text-slate-800">{formatUSD(f.fill_size_usdc)}</span>,
-          },
-          {
-            key: 'fee', header: 'Fee',
-            render: (f) => <span className="font-mono text-sm text-red-600 font-semibold">{formatUSD(f.fee_usdc)}</span>,
-          },
-          {
-            key: 'time', header: 'Filled At',
-            render: (f) => (
-              <span className="text-xs text-slate-500 font-mono">
-                {format(parseISO(f.filled_at), 'MMM dd, HH:mm:ss')}
-              </span>
-            ),
-          },
-        ]}
-        data={filtered}
-        pageSize={10}
-      />
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          <span className="ml-3 text-slate-500">Loading trade history from Polymarket...</span>
+        </div>
+      )}
+
+      {/* Table */}
+      {!loading && (
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-100">
+                  <th className="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">Side</th>
+                  <th className="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">Outcome</th>
+                  <th className="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">Role</th>
+                  <th className="text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">Size</th>
+                  <th className="text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">Price</th>
+                  <th className="text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">Volume</th>
+                  <th className="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">Status</th>
+                  <th className="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">Time</th>
+                  <th className="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">Market</th>
+                  <th className="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">Tx</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((trade) => {
+                  const size = parseFloat(trade.size || '0');
+                  const price = parseFloat(trade.price || '0');
+                  const volume = size * price;
+                  const matchTime = parseInt(trade.match_time || '0');
+                  const timeStr = matchTime > 0 ? format(new Date(matchTime * 1000), 'MMM dd, HH:mm:ss') : 'N/A';
+                  return (
+                    <tr key={trade.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                      <td className="px-5 py-3.5">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          trade.side === 'BUY' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                        }`}>
+                          {trade.side === 'BUY' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                          {trade.side}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-sm text-slate-700 font-medium">{trade.outcome || 'N/A'}</td>
+                      <td className="px-5 py-3.5">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          trade.trader_side === 'MAKER' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
+                        }`}>
+                          {trade.trader_side}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-sm text-slate-800 font-bold text-right font-mono">{size.toLocaleString()}</td>
+                      <td className="px-5 py-3.5 text-sm text-slate-700 text-right font-mono">${price.toFixed(4)}</td>
+                      <td className="px-5 py-3.5 text-sm text-slate-800 font-bold text-right">{formatUSD(volume)}</td>
+                      <td className="px-5 py-3.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">
+                          {trade.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-slate-500 font-mono">{timeStr}</td>
+                      <td className="px-5 py-3.5 text-xs text-slate-500 font-mono">{trade.market?.slice(0, 10)}...</td>
+                      <td className="px-5 py-3.5">
+                        {trade.transaction_hash && (
+                          <a
+                            href={`https://polygonscan.com/tx/${trade.transaction_hash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-700 text-xs font-mono flex items-center gap-1"
+                          >
+                            {trade.transaction_hash.slice(0, 8)}...
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {filtered.length === 0 && !loading && (
+            <div className="text-center py-16 text-slate-400 text-sm">No fills found</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

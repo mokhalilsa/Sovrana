@@ -1,186 +1,187 @@
 'use client';
 
-import { useState } from 'react';
-import { Briefcase, Filter, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, X, LogOut } from 'lucide-react';
-import StatusBadge from '@/components/StatusBadge';
-import DataTable from '@/components/DataTable';
-import StatsCard from '@/components/StatsCard';
-import ConfirmDialog from '@/components/ConfirmDialog';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  Briefcase, Loader2, RefreshCw, Wifi, WifiOff, ExternalLink,
+} from 'lucide-react';
 import { useToast } from '@/components/Toast';
-import { mockPositions } from '@/lib/mock-data';
-import { formatUSD, getPnlColor } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
-import { Position } from '@/types';
+import { formatUSD } from '@/lib/utils';
 
 export default function PositionsPage() {
-  const [positions, setPositions] = useState<Position[]>(mockPositions);
-  const [filterAgent, setFilterAgent] = useState<string>('all');
-  const [filterOpen, setFilterOpen] = useState<string>('all');
   const { addToast } = useToast();
+  const [positions, setPositions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [connected, setConnected] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showClosed, setShowClosed] = useState(false);
 
-  const [confirmClose, setConfirmClose] = useState<{ isOpen: boolean; posId: string; agentName: string; market: string }>({
-    isOpen: false, posId: '', agentName: '', market: '',
-  });
+  const fetchPositions = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/portfolio/positions?closed=${showClosed}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.positions) {
+          setPositions(data.positions);
+          setConnected(true);
+        }
+      }
+    } catch {
+      setConnected(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [showClosed]);
 
-  const agentNames = [...new Set(positions.map((p) => p.agent_name))];
+  useEffect(() => {
+    setLoading(true);
+    fetchPositions();
+    const interval = setInterval(fetchPositions, 30000);
+    return () => clearInterval(interval);
+  }, [fetchPositions]);
 
-  const filtered = positions.filter((p) => {
-    if (filterAgent !== 'all' && p.agent_name !== filterAgent) return false;
-    if (filterOpen === 'open' && !p.is_open) return false;
-    if (filterOpen === 'closed' && p.is_open) return false;
-    return true;
-  });
-
-  const totalUnrealized = filtered.reduce((sum, p) => sum + (p.unrealized_pnl || 0), 0);
-  const totalRealized = filtered.reduce((sum, p) => sum + p.realized_pnl, 0);
-  const totalSize = filtered.filter((p) => p.is_open).reduce((sum, p) => sum + p.size_usdc, 0);
-
-  const handleClosePosition = (id: string, agentName: string, market: string) => {
-    setConfirmClose({ isOpen: true, posId: id, agentName, market });
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchPositions();
+    setRefreshing(false);
+    addToast('success', 'Positions Refreshed', 'Position data updated from Polymarket.');
   };
 
-  const confirmCloseAction = () => {
-    setPositions(prev => prev.map(p =>
-      p.id === confirmClose.posId
-        ? { ...p, is_open: false, closed_at: new Date().toISOString(), realized_pnl: p.realized_pnl + (p.unrealized_pnl || 0), unrealized_pnl: 0 }
-        : p
-    ));
-    addToast('success', 'Position Closed', `Position for ${confirmClose.market} by ${confirmClose.agentName} has been closed.`);
-  };
-
-  const handleClearFilters = () => {
-    setFilterAgent('all');
-    setFilterOpen('all');
-    addToast('info', 'Filters Cleared', 'All filters have been reset.');
-  };
+  const totalSize = positions.reduce((sum, p) => sum + parseFloat(p.size || p.currentValue || '0'), 0);
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Positions</h1>
-        <p className="text-sm text-slate-500 mt-1">Current and historical positions across all agents</p>
+      <div className="flex items-end justify-between">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Positions</h1>
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${connected ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+              {connected ? <><Wifi className="w-3 h-3 mr-1" /> LIVE</> : <><WifiOff className="w-3 h-3 mr-1" /> OFFLINE</>}
+            </span>
+          </div>
+          <p className="text-sm text-slate-500">Your real Polymarket positions</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={handleRefresh} disabled={refreshing} className="btn-secondary flex items-center gap-2 py-2 px-3.5">
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <StatsCard title="Total Exposure" value={formatUSD(totalSize)} icon={DollarSign} color="blue" subtitle={`${filtered.filter(p => p.is_open).length} open positions`} />
-        <StatsCard title="Unrealized PnL" value={`${totalUnrealized >= 0 ? '+' : ''}${formatUSD(totalUnrealized)}`} icon={TrendingUp} color={totalUnrealized >= 0 ? 'green' : 'red'} />
-        <StatsCard title="Realized PnL" value={`${totalRealized >= 0 ? '+' : ''}${formatUSD(totalRealized)}`} icon={TrendingDown} color={totalRealized >= 0 ? 'green' : 'red'} />
+        <div className="card p-5">
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Total Positions</p>
+          <p className="text-2xl font-extrabold text-slate-800">{positions.length}</p>
+          <p className="text-xs text-slate-400 mt-1">{showClosed ? 'Closed' : 'Open'} positions</p>
+        </div>
+        <div className="card p-5">
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Portfolio Value</p>
+          <p className="text-2xl font-extrabold text-slate-800">{formatUSD(totalSize)}</p>
+          <p className="text-xs text-slate-400 mt-1">Estimated value</p>
+        </div>
+        <div className="card p-5">
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">View</p>
+          <div className="flex items-center gap-2 mt-1">
+            <button
+              onClick={() => setShowClosed(false)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${!showClosed ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+            >
+              Open
+            </button>
+            <button
+              onClick={() => setShowClosed(true)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${showClosed ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+            >
+              Closed
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2 text-slate-500">
-          <Filter className="w-4 h-4" />
-          <span className="text-xs font-semibold uppercase tracking-wider">Filters</span>
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          <span className="ml-3 text-slate-500">Loading positions from Polymarket...</span>
         </div>
-        <select value={filterAgent} onChange={(e) => setFilterAgent(e.target.value)} className="input-dark text-sm">
-          <option value="all">All Agents</option>
-          {agentNames.map((name) => (
-            <option key={name} value={name}>{name}</option>
-          ))}
-        </select>
-        <select value={filterOpen} onChange={(e) => setFilterOpen(e.target.value)} className="input-dark text-sm">
-          <option value="all">All Positions</option>
-          <option value="open">Open Only</option>
-          <option value="closed">Closed Only</option>
-        </select>
-        {(filterAgent !== 'all' || filterOpen !== 'all') && (
-          <button onClick={handleClearFilters} className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
-            <X className="w-3 h-3" /> Clear
-          </button>
-        )}
-        <span className="text-xs text-slate-500 font-medium ml-auto">{filtered.length} positions</span>
-      </div>
+      )}
 
       {/* Positions Table */}
-      <DataTable
-        columns={[
-          {
-            key: 'id', header: 'Position',
-            render: (p) => (
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${p.side === 'buy' ? 'bg-emerald-50' : 'bg-red-50'}`}>
-                  {p.side === 'buy' ? <ArrowUpRight className="w-4 h-4 text-emerald-600" /> : <ArrowDownRight className="w-4 h-4 text-red-600" />}
-                </div>
-                <span className="text-[11px] text-slate-500 font-mono">{p.id}</span>
-              </div>
-            ),
-          },
-          {
-            key: 'agent', header: 'Agent',
-            render: (p) => <p className="text-sm font-semibold text-slate-700">{p.agent_name}</p>,
-          },
-          {
-            key: 'market', header: 'Market',
-            render: (p) => <span className="text-sm text-slate-400 font-mono">{p.condition_id}</span>,
-          },
-          {
-            key: 'side', header: 'Side',
-            render: (p) => <StatusBadge status={p.side} />,
-          },
-          {
-            key: 'size', header: 'Size',
-            render: (p) => <span className="font-mono text-sm font-semibold text-slate-800">{formatUSD(p.size_usdc)}</span>,
-          },
-          {
-            key: 'entry', header: 'Entry',
-            render: (p) => <span className="font-mono text-sm text-slate-500">${p.avg_entry_price.toFixed(4)}</span>,
-          },
-          {
-            key: 'current', header: 'Current',
-            render: (p) => <span className="font-mono text-sm text-slate-500">{p.current_price ? `$${p.current_price.toFixed(4)}` : '—'}</span>,
-          },
-          {
-            key: 'upnl', header: 'Unrealized',
-            render: (p) => (
-              <span className={`font-mono text-sm font-bold ${getPnlColor(p.unrealized_pnl || 0)}`}>
-                {(p.unrealized_pnl || 0) >= 0 ? '+' : ''}{formatUSD(p.unrealized_pnl || 0)}
-              </span>
-            ),
-          },
-          {
-            key: 'rpnl', header: 'Realized',
-            render: (p) => (
-              <span className={`font-mono text-sm font-bold ${getPnlColor(p.realized_pnl)}`}>
-                {p.realized_pnl >= 0 ? '+' : ''}{formatUSD(p.realized_pnl)}
-              </span>
-            ),
-          },
-          {
-            key: 'status', header: 'Status',
-            render: (p) => (
-              <StatusBadge status={p.is_open ? 'active' : 'closed'} dot={p.is_open} />
-            ),
-          },
-          {
-            key: 'actions', header: '',
-            render: (p) => p.is_open ? (
-              <button
-                onClick={() => handleClosePosition(p.id, p.agent_name, p.condition_id)}
-                className="p-2 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-all ring-1 ring-amber-200 cursor-pointer"
-                title="Close Position"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            ) : null,
-          },
-        ]}
-        data={filtered}
-        pageSize={10}
-      />
+      {!loading && positions.length > 0 && (
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-100">
+                  <th className="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">Market</th>
+                  <th className="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">Outcome</th>
+                  <th className="text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">Size</th>
+                  <th className="text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">Avg Price</th>
+                  <th className="text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">Current Value</th>
+                  <th className="text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">PnL</th>
+                  <th className="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {positions.map((pos, idx) => {
+                  const title = pos.title || pos.market || pos.conditionId || `Position ${idx + 1}`;
+                  const outcome = pos.outcome || pos.outcomeIndex || 'N/A';
+                  const size = parseFloat(pos.size || pos.shares || '0');
+                  const avgPrice = parseFloat(pos.avgPrice || pos.averagePrice || '0');
+                  const curValue = parseFloat(pos.currentValue || pos.value || '0');
+                  const pnl = parseFloat(pos.pnl || pos.realizedPnl || '0');
+                  const conditionId = pos.conditionId || pos.market || '';
 
-      {/* Confirm Close Dialog */}
-      <ConfirmDialog
-        isOpen={confirmClose.isOpen}
-        onClose={() => setConfirmClose(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={confirmCloseAction}
-        title="Close Position"
-        message={`Are you sure you want to close the position for ${confirmClose.market} by ${confirmClose.agentName}? This will place a market order to exit the position.`}
-        confirmText="Close Position"
-        variant="warning"
-      />
+                  return (
+                    <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                      <td className="px-5 py-3.5">
+                        <p className="text-sm text-slate-700 font-medium max-w-[250px] truncate">{title}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">{conditionId.slice(0, 12)}...</p>
+                      </td>
+                      <td className="px-5 py-3.5 text-sm text-slate-700 font-medium">{outcome}</td>
+                      <td className="px-5 py-3.5 text-sm text-slate-800 font-bold text-right font-mono">{size.toLocaleString()}</td>
+                      <td className="px-5 py-3.5 text-sm text-slate-700 text-right font-mono">${avgPrice.toFixed(4)}</td>
+                      <td className="px-5 py-3.5 text-sm text-slate-800 font-bold text-right">{formatUSD(curValue)}</td>
+                      <td className="px-5 py-3.5 text-right">
+                        <span className={`text-sm font-bold font-mono ${pnl >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                          {pnl >= 0 ? '+' : ''}{formatUSD(pnl)}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {conditionId && (
+                          <a
+                            href={`https://polymarket.com/event/${conditionId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-700 text-xs flex items-center gap-1"
+                          >
+                            View <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && positions.length === 0 && (
+        <div className="card p-16 text-center">
+          <Briefcase className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-slate-600 mb-2">No {showClosed ? 'Closed' : 'Open'} Positions</h3>
+          <p className="text-sm text-slate-400">
+            {showClosed
+              ? 'No closed positions found for this wallet.'
+              : 'You have no open positions on Polymarket right now.'}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
