@@ -62,8 +62,29 @@ function getClobClient(): ClobClient | null {
   if (!creds.key || !creds.secret || !creds.passphrase) return null;
 
   // Connect wallet to Polygon provider to avoid ENS resolution errors
-  const provider = new ethers.providers.JsonRpcProvider('https://polygon-rpc.com', 137);
-  const wallet = new ethers.Wallet(pk, provider);
+  // Use multiple fallback providers for reliability
+  let wallet: ethers.Wallet = new ethers.Wallet(pk);
+  const rpcUrls = [
+    'https://polygon-bor-rpc.publicnode.com',
+    'https://rpc.ankr.com/polygon',
+    'https://polygon.llamarpc.com',
+    'https://polygon-rpc.com',
+  ];
+  let connected = false;
+  for (const rpcUrl of rpcUrls) {
+    try {
+      const provider = new ethers.providers.JsonRpcProvider(rpcUrl, 137);
+      wallet = new ethers.Wallet(pk, provider);
+      connected = true;
+      break;
+    } catch {
+      continue;
+    }
+  }
+  if (!connected) {
+    // Fallback: wallet without provider (may fail for some operations)
+    wallet = new ethers.Wallet(pk);
+  }
   const funder = getFunderAddress();
 
   // Set HTTPS_PROXY env var for axios (used by the CLOB client internally)
