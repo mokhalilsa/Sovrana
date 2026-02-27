@@ -32,20 +32,20 @@ function getProxyUrl(): string | null {
 }
 
 function getPrivateKey(): string {
-  return process.env.PRIVATE_KEY || process.env.POLYMARKET_PRIVATE_KEY || '';
+  return (process.env.PRIVATE_KEY || '').trim();
 }
 
 function getApiCredentials() {
   return {
-    key: process.env.POLY_API_KEY || '',
-    secret: process.env.POLY_SECRET || '',
-    passphrase: process.env.POLY_PASSPHRASE || '',
+    key: (process.env.POLY_API_KEY || '').trim(),
+    secret: (process.env.POLY_SECRET || '').trim(),
+    passphrase: (process.env.POLY_PASSPHRASE || '').trim(),
   };
 }
 
 function getFunderAddress(): string {
   // The funder is the Polymarket proxy wallet that holds the funds
-  return process.env.POLY_FUNDER_ADDRESS || process.env.POLY_ADDRESS || '';
+  return (process.env.POLY_FUNDER_ADDRESS || process.env.POLY_ADDRESS || '').trim();
 }
 
 // ─── CLOB Client Singleton ───────────────────────────────────────────────
