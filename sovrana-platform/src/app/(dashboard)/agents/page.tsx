@@ -131,51 +131,41 @@ export default function AgentsPage() {
 
   // ─── Data Fetching ─────────────────────────────────────────────────────
 
-  const fetchState = useCallback(async () => {
+  const fetchState = useCallback(async (isManual = false) => {
     try {
-      const res = await fetch('/api/agents/state');
+      if (isManual) setRunning(true);
+      // Use the run endpoint which both scans markets AND returns all state
+      const res = await fetch('/api/agents/run', { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
         setState(data);
+        if (isManual && data.success) {
+          addToast('success', 'Engine Run Complete',
+            `${data.result.signalsGenerated} signals, ${data.result.tradesExecuted} trades, ${data.result.tradesFailed} failed`
+          );
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch agent state:', err);
+      if (isManual) addToast('error', 'Network Error', err.message);
     } finally {
       setLoading(false);
+      if (isManual) setRunning(false);
     }
-  }, []);
+  }, [addToast]);
 
   useEffect(() => {
     fetchState();
-    const interval = setInterval(fetchState, 10000); // Refresh every 10s
+    // Auto-refresh every 60s (each refresh triggers a market scan)
+    const interval = setInterval(() => fetchState(), 60000);
     return () => clearInterval(interval);
   }, [fetchState]);
 
   // ─── Run Agents ────────────────────────────────────────────────────────
 
   const handleRunAgents = async () => {
-    setRunning(true);
     addToast('info', 'Engine Starting', 'Scanning markets and running agents...');
-
-    try {
-      const res = await fetch('/api/agents/run', { method: 'POST' });
-      const data = await res.json();
-
-      if (data.success) {
-        addToast('success', 'Engine Run Complete',
-          `${data.result.signalsGenerated} signals generated, ${data.result.tradesExecuted} trades executed`
-        );
-      } else {
-        addToast('error', 'Engine Error', data.error || 'Unknown error');
-      }
-
-      // Refresh state
-      await fetchState();
-    } catch (err: any) {
-      addToast('error', 'Network Error', err.message);
-    } finally {
-      setRunning(false);
-    }
+    await fetchState(true);
   };
 
   // ─── Agent Control ─────────────────────────────────────────────────────
@@ -246,7 +236,7 @@ export default function AgentsPage() {
               <><Play className="w-4 h-4" />Run Agents Now</>
             )}
           </button>
-          <button onClick={fetchState} className="btn-secondary flex items-center gap-2 py-2 px-3.5">
+          <button onClick={() => fetchState()} className="btn-secondary flex items-center gap-2 py-2 px-3.5">
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>

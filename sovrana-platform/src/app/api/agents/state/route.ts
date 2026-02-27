@@ -1,19 +1,29 @@
 /**
  * GET /api/agents/state
- * Returns the current state of all agents, recent signals, trades, and activity.
+ * Returns the current state of all agents with fresh market data.
+ * Since serverless functions are stateless, this triggers a lightweight
+ * market scan to populate signals and trades.
  */
 
 import { NextResponse } from 'next/server';
-import { getStore, getAgents, getSignals, getTrades, getEngineStats, getActivityLog } from '@/lib/trading/store';
+import { runAgents } from '@/lib/trading/runner';
+import { getAgents, getSignals, getTrades, getEngineStats, getActivityLog } from '@/lib/trading/store';
 import { isExecutorConfigured } from '@/lib/trading/executor';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const agentId = searchParams.get('agentId') || undefined;
     const limit = parseInt(searchParams.get('limit') || '50');
+    const skipRun = searchParams.get('skipRun') === 'true';
+
+    // Run agents to populate state (serverless is stateless)
+    if (!skipRun) {
+      await runAgents();
+    }
 
     const agents = getAgents();
     const signals = getSignals(limit, agentId);
